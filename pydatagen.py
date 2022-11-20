@@ -190,35 +190,35 @@ class AvroParser:
                                 }
 
         # Generate random data
-        for field_name, args in payload_fields.items():
+        for field_name, params in payload_fields.items():
             if payload.get(field_name) is None:
                 payload[field_name] = list()
                 for _ in range(min_items, random.randint(min_items, max_items) + 1):
-                    if isinstance(args.get("arg.properties"), dict) and len(
-                        args.get("arg.properties")
+                    if isinstance(params.get("arg.properties"), dict) and len(
+                        params.get("arg.properties")
                     ):
-                        args_properties_type = next(iter(args.get("arg.properties")))
+                        args_properties_type = next(iter(params.get("arg.properties")))
 
                         # OPTIONS
                         if args_properties_type == "options":
                             if isinstance(
-                                args["arg.properties"][args_properties_type], list
+                                params["arg.properties"][args_properties_type], list
                             ):
                                 payload[field_name].append(
                                     random.choice(
-                                        args["arg.properties"][args_properties_type]
+                                        params["arg.properties"][args_properties_type]
                                     )
                                 )
 
                         # INTERATION
                         elif args_properties_type == "iteration":
                             if isinstance(
-                                args["arg.properties"][args_properties_type], dict
+                                params["arg.properties"][args_properties_type], dict
                             ):
-                                iteration_start = args["arg.properties"][
+                                iteration_start = params["arg.properties"][
                                     args_properties_type
                                 ].get("start", 0)
-                                iteration_step = args["arg.properties"][
+                                iteration_step = params["arg.properties"][
                                     args_properties_type
                                 ].get("step", 1)
                                 if self.payload_iteration_cache.get(field_name) is None:
@@ -236,12 +236,12 @@ class AvroParser:
                         # RANGE
                         elif args_properties_type == "range":
                             if isinstance(
-                                args["arg.properties"][args_properties_type], dict
+                                params["arg.properties"][args_properties_type], dict
                             ):
-                                range_min = args["arg.properties"][
+                                range_min = params["arg.properties"][
                                     args_properties_type
                                 ].get("min", 0)
-                                range_max = args["arg.properties"][
+                                range_max = params["arg.properties"][
                                     args_properties_type
                                 ].get("max", 1)
                                 if isinstance(range_min, int) and isinstance(
@@ -252,18 +252,18 @@ class AvroParser:
                                     )
                                 else:
                                     value = random.uniform(range_min, range_max)
-                                    if isinstance(args.get("scale"), int):
-                                        value = round(value, args.get("scale"))
+                                    if isinstance(params.get("scale"), int):
+                                        value = round(value, params.get("scale"))
                                     payload[field_name].append(value)
 
                         # REGEX
                         elif args_properties_type == "regex":
                             if isinstance(
-                                args["arg.properties"][args_properties_type], str
+                                params["arg.properties"][args_properties_type], str
                             ):
                                 payload[field_name].append(
                                     exrex.getone(
-                                        args["arg.properties"][args_properties_type]
+                                        params["arg.properties"][args_properties_type]
                                     )
                                 )
 
@@ -275,44 +275,43 @@ class AvroParser:
 
         return payload
 
+    def data_dict(
+        self,
+        data: dict,
+        ctx,
+    ) -> dict:
+        """
+        Returns a dict representation of a data instance for serialization.
+        Args:
+            data (dict): payload data
+            ctx (SerializationContext): Metadata pertaining to the serialization
+                operation.
+        Returns:
+            dict: Dict populated with user attributes to be serialized.
+        """
+        return dict(data)
 
-def data_dict(
-    data: dict,
-    ctx,
-) -> dict:
-    """
-    Returns a dict representation of a data instance for serialization.
-    Args:
-        data (dict): payload data
-        ctx (SerializationContext): Metadata pertaining to the serialization
-            operation.
-    Returns:
-        dict: Dict populated with user attributes to be serialized.
-    """
-    return dict(data)
+    def delivery_report(self, err, msg):
+        """
+        Reports the failure or success of a message delivery.
+        Args:
+            err (KafkaError): The error that occurred on None on success.
+            msg (Message): The message that was produced or failed.
+        Note:
+            In the delivery report callback the Message.key() and Message.value()
+            will be the binary format as encoded by any configured Serializers and
+            not the same object that was passed to produce().
+            If you wish to pass the original object(s) for key and value to delivery
+            report callback we recommend a bound callback or lambda where you pass
+            the objects along.
+        """
 
-
-def deliveryReport(err, msg):
-    """
-    Reports the failure or success of a message delivery.
-    Args:
-        err (KafkaError): The error that occurred on None on success.
-        msg (Message): The message that was produced or failed.
-    Note:
-        In the delivery report callback the Message.key() and Message.value()
-        will be the binary format as encoded by any configured Serializers and
-        not the same object that was passed to produce().
-        If you wish to pass the original object(s) for key and value to delivery
-        report callback we recommend a bound callback or lambda where you pass
-        the objects along.
-    """
-
-    if err is not None:
-        print(f"> ERROR: Delivery failed for Data record {msg.key()}: {err}\n")
-    else:
-        print(
-            f"> Message successfully produced to {msg.topic()}: Partition = {msg.partition()}, Offset = {msg.offset()}\n"
-        )
+        if err is not None:
+            print(f"> ERROR: Delivery failed for Data record {msg.key()}: {err}\n")
+        else:
+            print(
+                f"> Message successfully produced to {msg.topic()}: Partition = {msg.partition()}, Offset = {msg.offset()}\n"
+            )
 
 
 def main(args):
@@ -361,7 +360,7 @@ def main(args):
         avro_serializer = AvroSerializer(
             schema_registry_client,
             json.dumps(avsc.avro_schema),
-            data_dict,
+            avsc.data_dict,
         )
 
         print(
@@ -388,7 +387,7 @@ def main(args):
                 }
 
                 if not args.silent:
-                    producer_args.update({"on_delivery": deliveryReport})
+                    producer_args.update({"on_delivery": avsc.delivery_report})
                     print(f"message #{msg+1}: {message}")
 
                 # Set headers
