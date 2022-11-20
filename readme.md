@@ -83,7 +83,7 @@ key: {"player_id": 1095}
 
 ### Input
 ```
-python3 pydatagen.py --schema-filename gaming_players.avro --set-headers --keyfield player_id --key-json --interval 1000 --iterations 10
+python3 pydatagen.py --schema-filename gaming_players.avro --set-headers --keyfield player_id --key-json --interval 1000 --iterations 10 --topic test2
 ```
 ### Output
 ```
