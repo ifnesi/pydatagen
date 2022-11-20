@@ -1,1 +1,5 @@
-.vscode
+.vscode/
+.DS_Store
+docs/
+*.pyc
+*.log
