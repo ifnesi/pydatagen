@@ -228,12 +228,12 @@ class AvroParser:
                         params["arg.properties"] = {
                             "range": {
                                 "min": 0,
-                                "max": 99.00,
+                                "max": 99.99,
                             }
                         }
                     elif missing_field_type == str:
                         params["arg.properties"] = {
-                            "regex": "[A-Z][1-9]{8,8}",
+                            "regex": "[a-zA-Z1-9]{4,8}",
                         }
                     elif missing_field_type == bool:
                         params["arg.properties"] = {
