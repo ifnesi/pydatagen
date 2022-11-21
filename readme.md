@@ -5,14 +5,17 @@
 - see requirements.txt
 
 ## Important:
-"resources/" folder forked on 19-Nov-2022 (https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
+ - Folder "resources/" was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
+ - In case "arg.properties" is not defined in the schema file, a random value will be picked (int/long: 1~9999, double: 0.00~99.99, boolean: true~false, string: 4~ 8 random alphanumeric chars)
+ - Schema will be cleaned up of "arg.properties" before sending to the Schema Registry
 
 ## Usage and help
-```
-usage: pydatagen.py [-h] --schema-filename SCHEMA_FILENAME [--keyfield KEYFIELD] [--key-json] --topic TOPIC [--set-headers] [--dry-run] [--bootstrap-servers BOOTSTRAP_SERVERS]
-                    [--schema-registry SCHEMA_REGISTRY] [--iterations ITERATIONS] [--interval INTERVAL] [--silent]
-
-options:
+<pre>
+usage: <span style="color:green">
+  pydatagen.py [-h] --schema-filename SCHEMA_FILENAME [--keyfield KEYFIELD] [--key-json] --topic TOPIC [--set-headers] [--dry-run] [--bootstrap-servers BOOTSTRAP_SERVERS]
+               [--schema-registry SCHEMA_REGISTRY] [--iterations ITERATIONS] [--interval INTERVAL] [--silent]
+</span>
+options:<span style="color:green">
   -h, --help            show this help message and exit
   --schema-filename SCHEMA_FILENAME
                         Avro schema file name
@@ -29,15 +32,17 @@ options:
                         Number of messages to be sent
   --interval INTERVAL   Max interval between messages (in milliseconds)
   --silent              Do not display results on screen (not applicable in dry run mode)
-```
+  </span>
+<span style="color:red">Pending auth to Confluent Cloud (SASL_SSL)</span>
+</pre>
 
 ## Examples:
 ### Input (dry run mode)
-```
+<pre style="color:green">
 python3 pydatagen.py --schema-filename gaming_players.avro --dry-run --set-headers --keyfield player_id --key-json --interval 1000 --iterations 10
-```
+</pre>
 ### Output (dry run mode)
-```
+<pre style="color:grey">
 Producing 10 messages in dry run mode. ^C to exit.
 
 message #1: {'player_id': 1072, 'player_name': 'Talbot Cashell', 'ip': '104.16.237.57'}
@@ -79,14 +84,14 @@ key: {"player_id": 1051}
 message #10: {'player_id': 1095, 'player_name': 'Chryste Wren', 'ip': '141.46.127.99'}
 headers: {'program': 'python', 'version': '3.10.8', 'node': 'P3W32CDKHC', 'environment': 'test'}
 key: {"player_id": 1095}
-```
+</pre>
 
 ### Input
-```
+<pre style="color:green">
 python3 pydatagen.py --schema-filename gaming_players.avro --set-headers --keyfield player_id --key-json --interval 1000 --iterations 10 --topic test2
-```
+</pre>
 ### Output
-```
+<pre style="color:grey">
 Producing 10 messages to topic 'test2'. ^C to exit.
 
 message #1: {'player_id': 1079, 'player_name': 'Nertie Zuker', 'ip': '219.151.0.93'}
@@ -140,4 +145,4 @@ key: {"player_id": 1100}
 
 Flushing messages...
 > Message successfully produced to test2: Partition = 0, Offset = 400
-```
+</pre>
