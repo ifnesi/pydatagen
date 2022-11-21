@@ -42,7 +42,9 @@ options:<span style="color:green">
 ## Examples:
 ### Input (dry run mode)
 <pre style="color:green">
-python3 pydatagen.py --schema-filename gaming_players.avro --dry-run --set-headers --keyfield player_id --key-json --interval 1000 --iterations 10
+python3 pydatagen.py --schema-filename gaming_players.avro --dry-run \
+                     --headers-filename dynamic_000.py --keyfield player_id \
+                     --key-json --interval 1000 --iterations 10
 </pre>
 ### Output (dry run mode)
 <pre style="color:grey">
@@ -91,7 +93,9 @@ key: {"player_id": 1095}
 
 ### Input
 <pre style="color:green">
-python3 pydatagen.py --schema-filename gaming_players.avro --set-headers --keyfield player_id --key-json --interval 1000 --iterations 10 --topic test2
+python3 pydatagen.py --schema-filename gaming_players.avro \
+                     --headers-filename dynamic_000.py --keyfield player_id \
+                     --key-json --interval 1000 --iterations 10 --topic test2
 </pre>
 ### Output
 <pre style="color:grey">
