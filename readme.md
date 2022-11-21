@@ -5,6 +5,7 @@
 - See file requirements.txt (python3 -m pip install -r requirements.txt)
 
 ## Important:
+ - This is a Kafka Producer and it does not use the Kafka Connect framework, also it is a single worker producer and "acks" is set to 0 (meaning, it will not wait for any acknowledgement from the broker)
  - Folder "resources/" was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
  - In case "arg.properties" is not defined in the schema file, a random value will be picked (int/long: 1 to 9999, double: 0.00 to 99.99, boolean: true or false, string: 4 to 8 random alphanumeric chars)
  - Schema will be cleaned up of "arg.properties" before sending to the Schema Registry
