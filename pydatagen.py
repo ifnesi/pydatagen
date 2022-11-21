@@ -43,6 +43,14 @@ FOLDER_HEADERS = "headers"
 FOLDER_SCHEMAS = "resources"
 
 
+# General functions
+def real_sleep(millisecs: int, start_time: float):
+    """Sleep function to take into account the elapsed time in between messages generated/published"""
+    total_secs = millisecs / 1000 - (time.time() - start_time)
+    if total_secs > 0:
+        time.sleep(total_secs)
+
+
 class AvroParser:
     @staticmethod
     @lru_cache
@@ -368,6 +376,7 @@ def main(args):
         print(f"Producing {args.iterations} messages in dry-run mode. ^C to exit.\n")
         try:
             for msg in range(args.iterations):
+                start_time = time.time()
                 message = avsc.generate_payload(
                     avsc.avro_schema_original,
                     keyfield=args.keyfield,
@@ -385,8 +394,7 @@ def main(args):
                     print(f"key: {message_key}")
 
                 print()
-
-                time.sleep(args.interval / 1000)
+                real_sleep(args.interval, start_time)
 
         except KeyboardInterrupt:
             print("CTRL-C pressed by user")
@@ -414,6 +422,7 @@ def main(args):
         for msg in range(args.iterations):
             # Serve on_delivery callbacks from previous calls to produce()
             producer.poll(0.0)
+            start_time = time.time()
             try:
                 message = avsc.generate_payload(
                     avsc.avro_schema_original,
@@ -461,7 +470,7 @@ def main(args):
                 continue
 
             finally:
-                time.sleep(args.interval / 1000)
+                real_sleep(args.interval, start_time)
 
         print("\nFlushing messages...")
         producer.flush()
