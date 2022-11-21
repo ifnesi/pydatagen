@@ -43,15 +43,15 @@ options:<span style="color:green">
 </pre>
 
 ## Examples:
-### Input (dry run mode)
+### Input (dry-run mode)
 <pre style="color:green">
 python3 pydatagen.py --schema-filename gaming_players.avro --dry-run \
                      --headers-filename dynamic_000.py --keyfield player_id \
                      --key-json --interval 1000 --iterations 10
 </pre>
-### Output (dry run mode)
+### Output (dry-run mode)
 <pre style="color:grey">
-Producing 10 messages in dry run mode. ^C to exit.
+Producing 10 messages in dry-run mode. ^C to exit.
 
 message #1: {'player_id': 1072, 'player_name': 'Talbot Cashell', 'ip': '104.16.237.57'}
 headers: {'program': 'python', 'version': '3.10.8', 'node': 'P3W32CDKHC', 'environment': 'test'}
