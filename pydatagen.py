@@ -406,6 +406,7 @@ def main(args):
         schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
         producer_conf = {
+            "acks": 0,
             "bootstrap.servers": args.bootstrap_servers,
         }
         producer = Producer(producer_conf)
