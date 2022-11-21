@@ -27,6 +27,7 @@ import argparse
 import avro.schema
 import commentjson
 
+from functools import lru_cache
 from importlib import import_module
 from confluent_kafka import Producer
 from confluent_kafka.serialization import (
@@ -43,6 +44,80 @@ FOLDER_SCHEMAS = "resources"
 
 
 class AvroParser:
+    @staticmethod
+    @lru_cache
+    def _get_field_type(field_type: str):
+        """Internal method (idempotent) to return Python's equivalent type, None if no match"""
+        if field_type in ["int", "long"]:
+            return int
+        elif field_type in ["float", "decimal", "bytes", "double"]:
+            return float
+        elif field_type == "boolean":
+            return bool
+        elif field_type == "array":
+            return list
+        elif field_type == "string":
+            return str
+
+    @staticmethod
+    @lru_cache
+    def set_headers(headers_filename: str) -> dict:
+        """Internal method (idempotent) to return message headers"""
+        if headers_filename.lower().endswith(".py"):
+            # Import python module and get dict value from variables headers
+            return import_module(f"{FOLDER_HEADERS}.{headers_filename[:-3]}").headers
+        else:
+            # Read headers file and jsonify it
+            with open(os.path.join(FOLDER_HEADERS, headers_filename), "r") as f:
+                return commentjson.loads(f.read())
+
+    @staticmethod
+    def data_dict(
+        data: dict,
+        ctx,
+    ) -> dict:
+        """
+        Returns a dict representation of a data instance for serialization.
+        Args:
+            data (dict): payload data
+            ctx (SerializationContext): Metadata pertaining to the serialization
+                operation.
+        Returns:
+            dict: Dict populated with user attributes to be serialized.
+        """
+        return dict(data)
+
+    @staticmethod
+    def delivery_report(err, msg):
+        """
+        Reports the failure or success of a message delivery.
+        Args:
+            err (KafkaError): The error that occurred on None on success.
+            msg (Message): The message that was produced or failed.
+        Note:
+            In the delivery report callback the Message.key() and Message.value()
+            will be the binary format as encoded by any configured Serializers and
+            not the same object that was passed to produce().
+            If you wish to pass the original object(s) for key and value to delivery
+            report callback we recommend a bound callback or lambda where you pass
+            the objects along.
+        """
+
+        if err is not None:
+            print(f"> ERROR: Delivery failed for Data record {msg.key()}: {err}\n")
+        else:
+            print(
+                f"> Message successfully produced to {msg.topic()}: Partition = {msg.partition()}, Offset = {msg.offset()}\n"
+            )
+
+    @staticmethod
+    def _get_type(field_type):
+        """Internal method to return field type, pick a random one in case of Union"""
+        if isinstance(field_type, list):
+            return random.choice(field_type)
+        else:
+            return field_type
+
     def __init__(self, avro_schema_filename: str) -> None:
         self.payload_iteration_cache = dict()  # In case of arg.properties INTERATION
         self.keyfield_type = str  # default
@@ -75,32 +150,8 @@ class AvroParser:
         else:
             return schema
 
-    def _get_type(self, field_type):
-        if isinstance(field_type, list):
-            return random.choice(field_type)
-        else:
-            return field_type
-
-    def _get_field_type(self, field_type: str):
-        if field_type in ["int", "long"]:
-            return int
-        elif field_type in ["float", "decimal", "bytes", "double"]:
-            return float
-        elif field_type == "boolean":
-            return bool
-        elif field_type == "array":
-            return list
-        elif field_type == "string":
-            return str
-
-    def set_headers(self, headers_filename: str) -> dict:
-        if headers_filename.lower().endswith(".py"):
-            return import_module(f"{FOLDER_HEADERS}.{headers_filename[:-3]}").headers
-        else:
-            with open(os.path.join(FOLDER_HEADERS, headers_filename), "r") as f:
-                return commentjson.loads(f.read())
-
     def set_key(self, message: dict, key_json: bool, keyfield: str):
+        """Set message key"""
         message_key = message[keyfield]
         if key_json:
             message_key = json.dumps({keyfield: message_key})
@@ -170,7 +221,6 @@ class AvroParser:
                         if args_properties is None:
                             args_properties = dict()
 
-                        # arg.properties defined on the field type items level
                         if field_type_type == "array":
                             field_items = field_type.get("items")
                             if isinstance(field_items, dict):
@@ -197,6 +247,15 @@ class AvroParser:
                                             is_recurring=True,
                                         )
                                     )
+
+                        elif field_type_type == "record":
+                            payload[field_name] = self.generate_payload(
+                                {
+                                    "fields": field_type.get("fields", list()),
+                                    "arg.properties": field_type.get("arg.properties"),
+                                },
+                                is_recurring=True,
+                            )
 
                         else:
                             if isinstance(field_type_type, str):
@@ -298,44 +357,6 @@ class AvroParser:
                         )
 
         return payload
-
-    def data_dict(
-        self,
-        data: dict,
-        ctx,
-    ) -> dict:
-        """
-        Returns a dict representation of a data instance for serialization.
-        Args:
-            data (dict): payload data
-            ctx (SerializationContext): Metadata pertaining to the serialization
-                operation.
-        Returns:
-            dict: Dict populated with user attributes to be serialized.
-        """
-        return dict(data)
-
-    def delivery_report(self, err, msg):
-        """
-        Reports the failure or success of a message delivery.
-        Args:
-            err (KafkaError): The error that occurred on None on success.
-            msg (Message): The message that was produced or failed.
-        Note:
-            In the delivery report callback the Message.key() and Message.value()
-            will be the binary format as encoded by any configured Serializers and
-            not the same object that was passed to produce().
-            If you wish to pass the original object(s) for key and value to delivery
-            report callback we recommend a bound callback or lambda where you pass
-            the objects along.
-        """
-
-        if err is not None:
-            print(f"> ERROR: Delivery failed for Data record {msg.key()}: {err}\n")
-        else:
-            print(
-                f"> Message successfully produced to {msg.topic()}: Partition = {msg.partition()}, Offset = {msg.offset()}\n"
-            )
 
 
 def main(args):

@@ -3,3 +3,4 @@
 docs/
 *.pyc
 *.log
+__pycache__/
