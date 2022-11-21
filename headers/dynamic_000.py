@@ -1,4 +1,4 @@
-# Make sure to set a dict variable called headers
+# Make sure to set a global variable called "headers" (dict)
 
 import platform
 

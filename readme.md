@@ -2,12 +2,16 @@
 
 ## Requirements:
 - Python 3.8+
-- see requirements.txt
+- See file requirements.txt (python3 -m pip install -r requirements.txt)
 
 ## Important:
  - Folder "resources/" was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
  - In case "arg.properties" is not defined in the schema file, a random value will be picked (int/long: 1 to 9999, double: 0.00 to 99.99, boolean: true or false, string: 4 to 8 random alphanumeric chars)
  - Schema will be cleaned up of "arg.properties" before sending to the Schema Registry
+ - Message headers can be set dynamically (python script, make sure to set a global variable called "headers") or statically (json file). All header files must be inside the folder "headers/"
+
+## To do:
+ - Pending auth to Confluent Cloud and Schema Registry (SASL_SSL)
 
 ## Usage and help
 <pre>
@@ -36,7 +40,6 @@ options:<span style="color:green">
   --interval INTERVAL   Max interval between messages (in milliseconds)
   --silent              Do not display results on screen (not applicable in dry-run mode)
   </span>
-<span style="color:red">Pending auth to Confluent Cloud (SASL_SSL)</span>
 </pre>
 
 ## Examples:

@@ -365,7 +365,7 @@ def main(args):
     avsc = AvroParser(avro_schema_filename)
 
     if args.dry_run:
-        print(f"Producing {args.iterations} messages in dry run mode. ^C to exit.\n")
+        print(f"Producing {args.iterations} messages in dry-run mode. ^C to exit.\n")
         try:
             for msg in range(args.iterations):
                 message = avsc.generate_payload(
