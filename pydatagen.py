@@ -39,6 +39,8 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 
 
 # Global Variables
+FILE_APP = os.path.split(__file__)[-1]
+FOLDER_APP = os.path.dirname(__file__)
 FOLDER_HEADERS = "headers"
 FOLDER_SCHEMAS = "resources"
 
@@ -71,13 +73,23 @@ class AvroParser:
     @lru_cache
     def set_headers(headers_filename: str) -> dict:
         """Internal method (idempotent) to return message headers"""
-        if headers_filename.lower().endswith(".py"):
-            # Import python module and get dict value from variables headers
-            return import_module(f"{FOLDER_HEADERS}.{headers_filename[:-3]}").headers
-        else:
-            # Read headers file and jsonify it
-            with open(os.path.join(FOLDER_HEADERS, headers_filename), "r") as f:
-                return commentjson.loads(f.read())
+        # Read headers file and jsonify it
+        file = os.path.join(FOLDER_APP, FOLDER_HEADERS, headers_filename)
+        try:
+            if os.path.isfile(file):
+                if headers_filename.lower().endswith(".py"):
+                    # Import python module and get dict value from variables headers
+                    return import_module(
+                        f"{FOLDER_HEADERS}.{headers_filename[:-3]}"
+                    ).headers
+                else:
+                    with open(file, "r") as f:
+                        return commentjson.loads(f.read())
+            else:
+                sys.exit(f"{FILE_APP}: error: Headers filename not found: {file}")
+
+        except Exception as err:
+            sys.exit(f'{FILE_APP}: error: when processing headers file "{file}": {err}')
 
     @staticmethod
     def data_dict(
@@ -131,8 +143,19 @@ class AvroParser:
         self.keyfield_type = str  # default
 
         # Read avro schema file (throws exception in case of error)
-        with open(avro_schema_filename, "r") as f:
-            self.avro_schema_original = commentjson.loads(f.read())
+        if os.path.isfile(avro_schema_filename):
+            try:
+                with open(avro_schema_filename, "r") as f:
+                    self.avro_schema_original = commentjson.loads(f.read())
+
+            except Exception as err:
+                sys.exit(
+                    f'{FILE_APP}: error: when processing schema file "{avro_schema_filename}": {err}'
+                )
+        else:
+            sys.exit(
+                f"{FILE_APP}: error: Schema filename not found: {avro_schema_filename}"
+            )
 
         # Validate avro schema (throws exception in case of error)
         avro.schema.parse(json.dumps(self.avro_schema_original))
@@ -368,8 +391,11 @@ class AvroParser:
 
 
 def main(args):
-    path = os.path.dirname(__file__)
-    avro_schema_filename = os.path.join(path, FOLDER_SCHEMAS, args.schema_filename)
+    avro_schema_filename = os.path.join(
+        FOLDER_APP,
+        FOLDER_SCHEMAS,
+        args.schema_filename,
+    )
     avsc = AvroParser(avro_schema_filename)
 
     if args.dry_run:
@@ -400,81 +426,88 @@ def main(args):
             print("CTRL-C pressed by user")
 
     else:
-        schema_registry_conf = {
-            "url": args.schema_registry,
-        }
-        schema_registry_client = SchemaRegistryClient(schema_registry_conf)
+        producer = None
+        try:
+            schema_registry_conf = {
+                "url": args.schema_registry,
+            }
+            schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
-        producer_conf = {
-            "acks": 0,
-            "bootstrap.servers": args.bootstrap_servers,
-        }
-        producer = Producer(producer_conf)
+            producer_conf = {
+                "acks": 0,
+                "bootstrap.servers": args.bootstrap_servers,
+            }
+            producer = Producer(producer_conf)
 
-        avro_serializer = AvroSerializer(
-            schema_registry_client,
-            json.dumps(avsc.avro_schema),
-            avsc.data_dict,
-        )
+            avro_serializer = AvroSerializer(
+                schema_registry_client,
+                json.dumps(avsc.avro_schema),
+                avsc.data_dict,
+            )
 
-        print(
-            f"Producing {args.iterations} messages to topic '{args.topic}'. ^C to exit.\n"
-        )
-        for msg in range(args.iterations):
-            # Serve on_delivery callbacks from previous calls to produce()
-            producer.poll(0.0)
-            start_time = time.time()
-            try:
-                message = avsc.generate_payload(
-                    avsc.avro_schema_original,
-                    keyfield=args.keyfield,
-                )
+            print(
+                f"Producing {args.iterations} messages to topic '{args.topic}'. ^C to exit.\n"
+            )
+            for msg in range(args.iterations):
+                # Serve on_delivery callbacks from previous calls to produce()
+                producer.poll(0.0)
+                start_time = time.time()
+                try:
+                    message = avsc.generate_payload(
+                        avsc.avro_schema_original,
+                        keyfield=args.keyfield,
+                    )
 
-                producer_args = {
-                    "topic": args.topic,
-                    "value": avro_serializer(
-                        message,
-                        SerializationContext(
-                            args.topic,
-                            MessageField.VALUE,
+                    producer_args = {
+                        "topic": args.topic,
+                        "value": avro_serializer(
+                            message,
+                            SerializationContext(
+                                args.topic,
+                                MessageField.VALUE,
+                            ),
                         ),
-                    ),
-                }
+                    }
 
-                if not args.silent:
-                    producer_args.update({"on_delivery": avsc.delivery_report})
-                    print(f"message #{msg+1}: {message}")
-
-                # Set headers
-                if args.headers_filename:
-                    message_headers = avsc.set_headers(args.headers_filename)
-                    producer_args.update({"headers": message_headers})
                     if not args.silent:
-                        print(f"headers: {message_headers}")
+                        producer_args.update({"on_delivery": avsc.delivery_report})
+                        print(f"message #{msg+1}: {message}")
 
-                # Set key
-                if message.get(args.keyfield):
-                    message_key = avsc.set_key(message, args.key_json, args.keyfield)
-                    producer_args.update({"key": message_key})
-                    if not args.silent:
-                        print(f"key: {message_key}")
+                    # Set headers
+                    if args.headers_filename:
+                        message_headers = avsc.set_headers(args.headers_filename)
+                        producer_args.update({"headers": message_headers})
+                        if not args.silent:
+                            print(f"headers: {message_headers}")
 
-                # Publish message
-                producer.produce(**producer_args)
+                    # Set key
+                    if message.get(args.keyfield):
+                        message_key = avsc.set_key(
+                            message, args.key_json, args.keyfield
+                        )
+                        producer_args.update({"key": message_key})
+                        if not args.silent:
+                            print(f"key: {message_key}")
 
-            except KeyboardInterrupt:
-                print("CTRL-C pressed by user")
-                break
+                    # Publish message
+                    producer.produce(**producer_args)
 
-            except ValueError as err:
-                print("> ERROR: Invalid input, discarding record: {err}")
-                continue
+                except KeyboardInterrupt:
+                    print("CTRL-C pressed by user")
+                    break
 
-            finally:
-                real_sleep(args.interval, start_time)
+                except ValueError as err:
+                    print("> ERROR: Invalid input, discarding record: {err}")
+                    continue
 
-        print("\nFlushing messages...")
-        producer.flush()
+                finally:
+                    real_sleep(args.interval, start_time)
+
+            print("\nFlushing messages...")
+            producer.flush()
+
+        except Exception as err:
+            sys.exit(f"{FILE_APP}: error: when publishing messages: {err}")
 
 
 if __name__ == "__main__":
