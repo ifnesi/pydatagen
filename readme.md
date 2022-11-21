@@ -6,7 +6,7 @@
 
 ## Important:
  - Folder "resources/" was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
- - In case "arg.properties" is not defined in the schema file, a random value will be picked (int/long: 1~9999, double: 0.00~99.99, boolean: true~false, string: 4~ 8 random alphanumeric chars)
+ - In case "arg.properties" is not defined in the schema file, a random value will be picked (int/long: 1 to 9999, double: 0.00 to 99.99, boolean: true~false, string: 4 to 8 random alphanumeric chars)
  - Schema will be cleaned up of "arg.properties" before sending to the Schema Registry
 
 ## Usage and help
