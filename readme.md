@@ -11,7 +11,8 @@
  - Message headers can be set dynamically (python script, make sure to set a global variable called "headers") or statically (json file). All header files must be inside the folder "headers/"
 
 ## To do:
- - Pending auth to Confluent Cloud and Schema Registry (SASL_SSL)
+ - Auth to Confluent Cloud and Schema Registry (SASL_SSL)
+ - Support JSON, JSON_SR and PROTOBUF schemas
 
 ## Usage and help
 <pre>
