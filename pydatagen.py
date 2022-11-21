@@ -70,7 +70,13 @@ class AvroParser:
         else:
             return schema
 
-    def _get_keyfield_type(self, field_type: str):
+    def _get_type(self, field_type):
+        if isinstance(field_type, list):
+            return random.choice(field_type)
+        else:
+            return field_type
+
+    def _get_field_type(self, field_type: str):
         if field_type in ["int", "long"]:
             return int
         elif field_type in ["float", "decimal", "bytes", "double"]:
@@ -79,7 +85,7 @@ class AvroParser:
             return bool
         elif field_type == "array":
             return list
-        else:
+        elif field_type == "string":
             return str
 
     def _set_headers(self) -> dict:
@@ -107,8 +113,6 @@ class AvroParser:
         self,
         avro_schema: dict,
         keyfield: str = None,
-        min_items: int = 1,
-        max_items: int = 1,
         is_recurring: bool = False,
     ) -> dict:
         """
@@ -116,8 +120,6 @@ class AvroParser:
         Args:
             avro_schema (dict): Avro schema with arg.properties
             keyfield (str): Key field name
-            min_items (int): Do not set this value, it is used in recurrency cases (array type)
-            max_items (int): Do not set this value, it is used in recurrency cases (array type)
             is_recurring (bool): Do not set this value, it is used in recurrency cases (array type)
         Returns:
             dict: payload
@@ -142,19 +144,17 @@ class AvroParser:
                 if field_name is not None:
                     field_type = field.get("type")
 
-                    if isinstance(field_type, str):
+                    if type(field_type) in [str, list]:
                         payload_fields[field_name] = {
-                            "type": field_type,
+                            "type": self._get_type(field_type),
                             "scale": field.get("scale"),
                             "arg.properties": field.get("arg.properties"),
                         }
 
                     elif isinstance(field_type, dict):
-                        field_type_type = field_type.get("type")
+                        field_type_type = self._get_type(field_type.get("type"))
                         if not is_recurring and keyfield == field_name:
-                            self.keyfield_type = self._get_keyfield_type(
-                                field_type_type
-                            )
+                            self.keyfield_type = self._get_field_type(field_type_type)
 
                         # arg.properties defined on the field level
                         args_properties = field.get("arg.properties")
@@ -170,16 +170,29 @@ class AvroParser:
                         if field_type_type == "array":
                             field_items = field_type.get("items")
                             if isinstance(field_items, dict):
-                                payload[field_name] = self.generate_payload(
-                                    {"fields": [field_items]},
-                                    min_items=args_properties.get("length", dict()).get(
-                                        "min", 1
-                                    ),
-                                    max_items=args_properties.get("length", dict()).get(
-                                        "max", 1
-                                    ),
-                                    is_recurring=True,
+                                min_items = args_properties.get("length", dict()).get(
+                                    "min",
+                                    1,
                                 )
+                                max_items = args_properties.get("length", dict()).get(
+                                    "max",
+                                    1,
+                                )
+                                payload[field_name] = list()
+                                for _ in range(random.randint(min_items, max_items)):
+                                    payload[field_name].append(
+                                        self.generate_payload(
+                                            {
+                                                "fields": field_items.get(
+                                                    "fields", list()
+                                                ),
+                                                "arg.properties": field_items.get(
+                                                    "arg.properties"
+                                                ),
+                                            },
+                                            is_recurring=True,
+                                        )
+                                    )
 
                         else:
                             if isinstance(field_type_type, str):
@@ -191,87 +204,94 @@ class AvroParser:
 
         # Generate random data
         for field_name, params in payload_fields.items():
+
             if payload.get(field_name) is None:
-                payload[field_name] = list()
-                for _ in range(min_items, random.randint(min_items, max_items) + 1):
-                    if isinstance(params.get("arg.properties"), dict) and len(
-                        params.get("arg.properties")
-                    ):
-                        args_properties_type = next(iter(params.get("arg.properties")))
+                payload[field_name] = None
 
-                        # OPTIONS
-                        if args_properties_type == "options":
-                            if isinstance(
-                                params["arg.properties"][args_properties_type], list
-                            ):
-                                payload[field_name].append(
-                                    random.choice(
-                                        params["arg.properties"][args_properties_type]
-                                    )
-                                )
+                # No arg.properties defined, set one
+                if not (
+                    isinstance(params.get("arg.properties"), dict)
+                    and len(params.get("arg.properties"))
+                ):
+                    missing_field_type = self._get_field_type(
+                        payload_fields[field_name].get("type")
+                    )
+                    if missing_field_type == int:
+                        params["arg.properties"] = {
+                            "range": {
+                                "min": 1,
+                                "max": 9999,
+                            }
+                        }
+                    elif missing_field_type == float:
+                        params["scale"] = 2
+                        params["arg.properties"] = {
+                            "range": {
+                                "min": 0,
+                                "max": 99.00,
+                            }
+                        }
+                    elif missing_field_type == str:
+                        params["arg.properties"] = {
+                            "regex": "[A-Z][1-9]{8,8}",
+                        }
+                    elif missing_field_type == bool:
+                        params["arg.properties"] = {
+                            "options": [
+                                True,
+                                False,
+                            ]
+                        }
+                    else:  # set none, in case of array
+                        params["arg.properties"] = {None: None}
 
-                        # INTERATION
-                        elif args_properties_type == "iteration":
-                            if isinstance(
-                                params["arg.properties"][args_properties_type], dict
-                            ):
-                                iteration_start = params["arg.properties"][
-                                    args_properties_type
-                                ].get("start", 0)
-                                iteration_step = params["arg.properties"][
-                                    args_properties_type
-                                ].get("step", 1)
-                                if self.payload_iteration_cache.get(field_name) is None:
-                                    self.payload_iteration_cache[
-                                        field_name
-                                    ] = iteration_start
-                                else:
-                                    self.payload_iteration_cache[
-                                        field_name
-                                    ] += iteration_step
-                                payload[field_name].append(
-                                    self.payload_iteration_cache[field_name]
-                                )
+                args_properties_type = next(iter(params.get("arg.properties")))
 
-                        # RANGE
-                        elif args_properties_type == "range":
-                            if isinstance(
-                                params["arg.properties"][args_properties_type], dict
-                            ):
-                                range_min = params["arg.properties"][
-                                    args_properties_type
-                                ].get("min", 0)
-                                range_max = params["arg.properties"][
-                                    args_properties_type
-                                ].get("max", 1)
-                                if isinstance(range_min, int) and isinstance(
-                                    range_max, int
-                                ):
-                                    payload[field_name].append(
-                                        random.randrange(range_min, range_max)
-                                    )
-                                else:
-                                    value = random.uniform(range_min, range_max)
-                                    if isinstance(params.get("scale"), int):
-                                        value = round(value, params.get("scale"))
-                                    payload[field_name].append(value)
+                # OPTIONS
+                if args_properties_type == "options":
+                    if isinstance(params["arg.properties"][args_properties_type], list):
+                        payload[field_name] = random.choice(
+                            params["arg.properties"][args_properties_type]
+                        )
 
-                        # REGEX
-                        elif args_properties_type == "regex":
-                            if isinstance(
-                                params["arg.properties"][args_properties_type], str
-                            ):
-                                payload[field_name].append(
-                                    exrex.getone(
-                                        params["arg.properties"][args_properties_type]
-                                    )
-                                )
+                # INTERATION
+                elif args_properties_type == "iteration":
+                    if isinstance(params["arg.properties"][args_properties_type], dict):
+                        iteration_start = params["arg.properties"][
+                            args_properties_type
+                        ].get("start", 0)
+                        iteration_step = params["arg.properties"][
+                            args_properties_type
+                        ].get("step", 1)
+                        if self.payload_iteration_cache.get(field_name) is None:
+                            self.payload_iteration_cache[field_name] = iteration_start
+                        else:
+                            self.payload_iteration_cache[field_name] += iteration_step
+                        payload[field_name] = self.payload_iteration_cache[field_name]
 
-                if not is_recurring:
-                    if len(payload[field_name]) > 0:
-                        payload[field_name] = payload[field_name][0]
-                    else:
-                        payload.pop(field_name, None)
+                # RANGE
+                elif args_properties_type == "range":
+                    if isinstance(params["arg.properties"][args_properties_type], dict):
+                        range_min = params["arg.properties"][args_properties_type].get(
+                            "min", 0
+                        )
+                        range_max = params["arg.properties"][args_properties_type].get(
+                            "max", 1
+                        )
+                        if isinstance(range_min, int) and isinstance(range_max, int):
+                            payload[field_name] = random.randrange(range_min, range_max)
+                        else:
+                            value = random.uniform(range_min, range_max)
+                            if isinstance(params.get("scale"), int):
+                                value = round(value, params.get("scale"))
+                            payload[field_name] = value
+
+                # REGEX
+                elif args_properties_type == "regex":
+                    if isinstance(params["arg.properties"][args_properties_type], str):
+                        payload[field_name] = exrex.getone(
+                            params["arg.properties"][args_properties_type]
+                        )
 
         return payload
 
