@@ -12,17 +12,20 @@
 ## Usage and help
 <pre>
 usage: <span style="color:green">
-  pydatagen.py [-h] --schema-filename SCHEMA_FILENAME [--keyfield KEYFIELD] [--key-json] --topic TOPIC [--set-headers] [--dry-run] [--bootstrap-servers BOOTSTRAP_SERVERS]
-               [--schema-registry SCHEMA_REGISTRY] [--iterations ITERATIONS] [--interval INTERVAL] [--silent]
+  pydatagen.py [-h] --schema-filename SCHEMA_FILENAME [--keyfield KEYFIELD] [--key-json]
+               --topic TOPIC [--headers-filename HEADERS_FILENAME] [--dry-run]
+               [--bootstrap-servers BOOTSTRAP_SERVERS] [--schema-registry SCHEMA_REGISTRY]
+               [--iterations ITERATIONS] [--interval INTERVAL] [--silent]
 </span>
 options:<span style="color:green">
   -h, --help            show this help message and exit
   --schema-filename SCHEMA_FILENAME
-                        Avro schema file name
-  --keyfield KEYFIELD   Name of the field to be used as message key
+                        Avro schema file name, files must be inside the folder resources/
+  --keyfield KEYFIELD   Name of the field to be used as message key (required if argument --key-json is set)
   --key-json            Set key as JSON -> {{keyfield: keyfield_value}}
-  --topic TOPIC         Topic name
-  --set-headers         Set headers with lineage data
+  --topic TOPIC         Topic name (required if argument --dry-run is not set)
+  --headers-filename HEADERS_FILENAME
+                        Select headers filename, files must be inside the folder headers/ (if not set, no headers will be set on the message)
   --dry-run             Generate and display messages without having them publish
   --bootstrap-servers BOOTSTRAP_SERVERS
                         Bootstrap broker(s) (host[:port])
@@ -31,7 +34,7 @@ options:<span style="color:green">
   --iterations ITERATIONS
                         Number of messages to be sent
   --interval INTERVAL   Max interval between messages (in milliseconds)
-  --silent              Do not display results on screen (not applicable in dry run mode)
+  --silent              Do not display results on screen (not applicable in dry-run mode)
   </span>
 <span style="color:red">Pending auth to Confluent Cloud (SASL_SSL)</span>
 </pre>

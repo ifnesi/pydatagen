@@ -24,10 +24,10 @@ import time
 import exrex
 import random
 import argparse
-import platform
 import avro.schema
 import commentjson
 
+from importlib import import_module
 from confluent_kafka import Producer
 from confluent_kafka.serialization import (
     SerializationContext,
@@ -35,6 +35,11 @@ from confluent_kafka.serialization import (
 )
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
+
+
+# Global Variables
+FOLDER_HEADERS = "headers"
+FOLDER_SCHEMAS = "resources"
 
 
 class AvroParser:
@@ -88,15 +93,14 @@ class AvroParser:
         elif field_type == "string":
             return str
 
-    def _set_headers(self) -> dict:
-        return {
-            "program": "python",
-            "version": platform.python_version(),
-            "node": platform.node(),
-            "environment": "test",
-        }
+    def set_headers(self, headers_filename: str) -> dict:
+        if headers_filename.lower().endswith(".py"):
+            return import_module(f"{FOLDER_HEADERS}.{headers_filename[:-3]}").headers
+        else:
+            with open(os.path.join(FOLDER_HEADERS, headers_filename), "r") as f:
+                return commentjson.loads(f.read())
 
-    def _set_key(self, message: dict, key_json: bool, keyfield: str):
+    def set_key(self, message: dict, key_json: bool, keyfield: str):
         message_key = message[keyfield]
         if key_json:
             message_key = json.dumps({keyfield: message_key})
@@ -336,7 +340,7 @@ class AvroParser:
 
 def main(args):
     path = os.path.dirname(__file__)
-    avro_schema_filename = os.path.join(path, "resources", args.schema_filename)
+    avro_schema_filename = os.path.join(path, FOLDER_SCHEMAS, args.schema_filename)
     avsc = AvroParser(avro_schema_filename)
 
     if args.dry_run:
@@ -350,13 +354,13 @@ def main(args):
                 print(f"message #{msg+1}: {message}")
 
                 # Set headers
-                if args.set_headers:
-                    message_headers = avsc._set_headers()
+                if args.headers_filename:
+                    message_headers = avsc.set_headers(args.headers_filename)
                     print(f"headers: {message_headers}")
 
                 # Set key
                 if message.get(args.keyfield):
-                    message_key = avsc._set_key(message, args.key_json, args.keyfield)
+                    message_key = avsc.set_key(message, args.key_json, args.keyfield)
                     print(f"key: {message_key}")
 
                 print()
@@ -411,15 +415,15 @@ def main(args):
                     print(f"message #{msg+1}: {message}")
 
                 # Set headers
-                if args.set_headers:
-                    message_headers = avsc._set_headers()
+                if args.headers_filename:
+                    message_headers = avsc.set_headers(args.headers_filename)
                     producer_args.update({"headers": message_headers})
                     if not args.silent:
                         print(f"headers: {message_headers}")
 
                 # Set key
                 if message.get(args.keyfield):
-                    message_key = avsc._set_key(message, args.key_json, args.keyfield)
+                    message_key = avsc.set_key(message, args.key_json, args.keyfield)
                     producer_args.update({"key": message_key})
                     if not args.silent:
                         print(f"key: {message_key}")
@@ -448,14 +452,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--schema-filename",
-        help="Avro schema file name",
+        help=f"Avro schema file name, files must be inside the folder {FOLDER_SCHEMAS}/",
         dest="schema_filename",
         required=True,
         type=str,
     )
     parser.add_argument(
         "--keyfield",
-        help="Name of the field to be used as message key",
+        help="Name of the field to be used as message key (required if argument --key-json is set)",
         dest="keyfield",
         type=str,
         default=None,
@@ -469,16 +473,17 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--topic",
-        help="Topic name",
+        help="Topic name (required if argument --dry-run is not set)",
         dest="topic",
         required="--dry-run" not in sys.argv,
         type=str,
     )
     parser.add_argument(
-        "--set-headers",
-        dest="set_headers",
-        action="store_true",
-        help="Set headers with lineage data",
+        "--headers-filename",
+        dest="headers_filename",
+        type=str,
+        help=f"Select headers filename, files must be inside the folder {FOLDER_HEADERS}/ (if not set, no headers will be set on the message)",
+        default=None,
     )
     parser.add_argument(
         "--dry-run",
@@ -518,7 +523,7 @@ if __name__ == "__main__":
         "--silent",
         dest="silent",
         action="store_true",
-        help="Do not display results on screen (not applicable in dry run mode)",
+        help="Do not display results on screen (not applicable in dry-run mode)",
     )
 
     main(parser.parse_args())

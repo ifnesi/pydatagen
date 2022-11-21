@@ -28,7 +28,7 @@ from pydatagen import main
 class Args(BaseModel):
     schema_filename: str
     dry_run: bool = True
-    set_headers: bool = False
+    headers_filename: str = "dynamic_000.py"
     keyfield: str = None
     key_json: bool = False
     interval: int = 10
