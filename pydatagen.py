@@ -71,25 +71,28 @@ class AvroParser:
 
     @staticmethod
     @lru_cache
-    def set_headers(headers_filename: str) -> dict:
-        """Internal method (idempotent) to return message headers"""
-        # Read headers file and jsonify it
-        file = os.path.join(FOLDER_APP, FOLDER_HEADERS, headers_filename)
-        try:
-            if os.path.isfile(file):
-                if headers_filename.lower().endswith(".py"):
-                    # Import python module and get dict value from variables headers
-                    return import_module(
-                        f"{FOLDER_HEADERS}.{headers_filename[:-3]}"
-                    ).headers
-                else:
-                    with open(file, "r") as f:
-                        return commentjson.loads(f.read())
-            else:
-                sys.exit(f"{FILE_APP}: error: Headers filename not found: {file}")
+    def _get_static_headers(filename: str) -> dict:
+        """Internal method (idempotent) to return static message headers"""
+        full_filename = os.path.join(FOLDER_APP, FOLDER_HEADERS, filename)
+        if os.path.isfile(full_filename):
+            with open(full_filename, "r") as f:
+                return commentjson.loads(f.read())
+        else:
+            sys.exit(
+                f"{FILE_APP}: error: Static headers filename not found: {full_filename}"
+            )
 
-        except Exception as err:
-            sys.exit(f'{FILE_APP}: error: when processing headers file "{file}": {err}')
+    @staticmethod
+    @lru_cache
+    def _get_dynamic_headers_module(filename: str):
+        """Internal method (idempotent) to return dynamic message headers' module"""
+        full_filename = os.path.join(FOLDER_APP, FOLDER_HEADERS, filename)
+        if os.path.isfile(full_filename):
+            return import_module(f"{FOLDER_HEADERS}.{filename[:-3]}")
+        else:
+            sys.exit(
+                f"{FILE_APP}: error: Dynamic headers filename not found: {full_filename}"
+            )
 
     @staticmethod
     def data_dict(
@@ -180,6 +183,19 @@ class AvroParser:
             return avro_schema
         else:
             return schema
+
+    def set_headers(self, headers_filename: str) -> dict:
+        """Internal method to return message headers"""
+        try:
+            if headers_filename.lower().endswith(".py"):
+                # Import python module and get dict value from method headers() -> dict:
+                return self._get_dynamic_headers_module(headers_filename).headers()
+            else:
+                return self._get_static_headers(headers_filename)
+        except Exception as err:
+            sys.exit(
+                f'{FILE_APP}: error: when processing headers file "{headers_filename}": {err}'
+            )
 
     def set_key(self, message: dict, key_json: bool, keyfield: str):
         """Set message key"""
