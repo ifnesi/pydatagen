@@ -13,26 +13,32 @@
  - Message headers can be set dynamically (python script, make sure to set a global variable called "headers") or statically (json file). All header files must be inside the folder "headers/"
 
 ## To do:
- - Auth to Confluent Cloud and Schema Registry (SASL_SSL)
  - Support to JSON, JSON_SR and PROTOBUF schemas
 
 ## Usage and help
 <pre>
 usage: <span style="color:green">
-  pydatagen.py [-h] --schema-filename SCHEMA_FILENAME [--keyfield KEYFIELD] [--key-json]
+  pydatagen.py [-h] --schema-filename SCHEMA_FILENAME
                --topic TOPIC [--headers-filename HEADERS_FILENAME] [--dry-run]
-               [--bootstrap-servers BOOTSTRAP_SERVERS] [--schema-registry SCHEMA_REGISTRY]
-               [--iterations ITERATIONS] [--interval INTERVAL] [--silent]
+               [--keyfield KEYFIELD] [--key-json]
+               [--bootstrap-servers BOOTSTRAP_SERVERS]
+               [--schema-registry SCHEMA_REGISTRY]
+               [--iterations ITERATIONS]
+               [--interval INTERVAL]
+               [--config-filename CONFIG_FILENAME]
+               [--kafka-section KAFKA_SECTION]
+               [--sr-section SR_SECTION]
+               [--silent]
 </span>
 options:<span style="color:green">
   -h, --help            show this help message and exit
   --schema-filename SCHEMA_FILENAME
-                        Avro schema file name, files must be inside the folder resources/
+                        Avro schema file name (files must be inside the folder resources/)
   --keyfield KEYFIELD   Name of the field to be used as message key (required if argument --key-json is set)
   --key-json            Set key as JSON -> {{keyfield: keyfield_value}}
   --topic TOPIC         Topic name (required if argument --dry-run is not set)
   --headers-filename HEADERS_FILENAME
-                        Select headers filename, files must be inside the folder headers/ (if not set, no headers will be set on the message)
+                        Select headers filename (files must be inside the folder headers/)
   --dry-run             Generate and display messages without having them publish
   --bootstrap-servers BOOTSTRAP_SERVERS
                         Bootstrap broker(s) (host[:port])
@@ -41,7 +47,13 @@ options:<span style="color:green">
   --iterations ITERATIONS
                         Number of messages to be sent
   --interval INTERVAL   Max interval between messages (in milliseconds)
-  --silent              Do not display results on screen (not applicable in dry-run mode)
+  --config-filename CONFIG_FILENAME
+                        Select config filename for additional configuration, such as credentials (files must be inside the folder config/)
+  --kafka-section KAFKA_SECTION
+                        Section in the config file related to the Kafka cluster
+  --sr-section SR_SECTION
+                        Section in the config file related to the Schema Registry
+  --silent              Do not display results on screen (not applicable to dry-run mode)
   </span>
 </pre>
 

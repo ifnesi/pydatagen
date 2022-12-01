@@ -4,3 +4,5 @@ docs/
 *.pyc
 *.log
 __pycache__/
+config/*
+!config/example.ini

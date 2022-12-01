@@ -26,6 +26,7 @@ import random
 import argparse
 import avro.schema
 import commentjson
+import configparser
 
 from functools import lru_cache
 from importlib import import_module
@@ -43,14 +44,34 @@ FILE_APP = os.path.split(__file__)[-1]
 FOLDER_APP = os.path.dirname(__file__)
 FOLDER_HEADERS = "headers"
 FOLDER_SCHEMAS = "resources"
+FOLDER_CONFIG = "config"
 
 
 # General functions
-def real_sleep(millisecs: int, start_time: float):
+def real_sleep(
+    millisecs: int,
+    start_time: float,
+):
     """Sleep function to take into account the elapsed time in between messages generated/published"""
     total_secs = millisecs / 1000 - (time.time() - start_time)
     if total_secs > 0:
         time.sleep(total_secs)
+
+
+def get_config_section_data(
+    config_filename: str,
+    config_data: configparser.ConfigParser,
+    section: str,
+) -> dict:
+    """Get section data inside the config file"""
+    if section is None:
+        return dict()
+    elif section in config_data.sections():
+        return dict(config_data[section])
+    else:
+        sys.exit(
+            f'{FILE_APP}: error: when processing config file "{config_filename}": section "{section}" not found'
+        )
 
 
 class AvroParser:
@@ -444,15 +465,55 @@ def main(args):
     else:
         producer = None
         try:
+            # Read config file (if any)
+            schema_registry_conf_additional = dict()
+            producer_conf_additional = dict()
+            if args.config_filename:
+                config_filename = os.path.join(
+                    FOLDER_APP,
+                    "config",
+                    args.config_filename,
+                )
+                if os.path.exists(config_filename):
+                    try:
+                        config_data = configparser.ConfigParser()
+                        config_data.read(config_filename)
+                        schema_registry_conf_additional = get_config_section_data(
+                            args.config_filename,
+                            config_data,
+                            args.sr_section,
+                        )
+                        producer_conf_additional = get_config_section_data(
+                            args.config_filename,
+                            config_data,
+                            args.kafka_section,
+                        )
+                    except Exception as err:
+                        sys.exit(
+                            f'{FILE_APP}: error: when processing config file "{args.config_filename}": {err}'
+                        )
+                else:
+                    sys.exit(
+                        f'{FILE_APP}: error: when processing config file "{config_filename}": file not found'
+                    )
+
+            # Schema Registry config
             schema_registry_conf = {
                 "url": args.schema_registry,
             }
+            schema_registry_conf.update(
+                schema_registry_conf_additional
+            )  # override with the additional config
             schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
+            # Producer config
             producer_conf = {
                 "acks": 0,
                 "bootstrap.servers": args.bootstrap_servers,
             }
+            producer_conf.update(
+                producer_conf_additional
+            )  # override with the additional config
             producer = Producer(producer_conf)
 
             avro_serializer = AvroSerializer(
@@ -532,7 +593,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--schema-filename",
-        help=f"Avro schema file name, files must be inside the folder {FOLDER_SCHEMAS}/",
+        help=f"Avro schema file name (files must be inside the folder {FOLDER_SCHEMAS}/)",
         dest="schema_filename",
         required=True,
         type=str,
@@ -562,7 +623,7 @@ if __name__ == "__main__":
         "--headers-filename",
         dest="headers_filename",
         type=str,
-        help=f"Select headers filename, files must be inside the folder {FOLDER_HEADERS}/ (if not set, no headers will be set on the message)",
+        help=f"Select headers filename (files must be inside the folder {FOLDER_HEADERS}/)",
         default=None,
     )
     parser.add_argument(
@@ -600,10 +661,31 @@ if __name__ == "__main__":
         type=int,
     )
     parser.add_argument(
+        "--config-filename",
+        dest="config_filename",
+        type=str,
+        help=f"Select config filename for additional configuration, such as credentials (files must be inside the folder {FOLDER_CONFIG}/)",
+        default=None,
+    )
+    parser.add_argument(
+        "--kafka-section",
+        dest="kafka_section",
+        type=str,
+        help=f"Section in the config file related to the Kafka cluster",
+        default=None,
+    )
+    parser.add_argument(
+        "--sr-section",
+        dest="sr_section",
+        type=str,
+        help=f"Section in the config file related to the Schema Registry",
+        default=None,
+    )
+    parser.add_argument(
         "--silent",
         dest="silent",
         action="store_true",
-        help="Do not display results on screen (not applicable in dry-run mode)",
+        help="Do not display results on screen (not applicable to dry-run mode)",
     )
 
     main(parser.parse_args())
