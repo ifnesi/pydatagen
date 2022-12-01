@@ -23,6 +23,7 @@ import json
 import time
 import exrex
 import random
+import hashlib
 import argparse
 import avro.schema
 import commentjson
@@ -510,6 +511,7 @@ def main(args):
             producer_conf = {
                 "acks": 0,
                 "bootstrap.servers": args.bootstrap_servers,
+                "client.id": f"{os.path.splitext(FILE_APP)[0]}_{hashlib.sha1(f'{args.topic}@{args.schema_filename}'.encode()).hexdigest()[:8]}",
             }
             producer_conf.update(
                 producer_conf_additional
@@ -523,7 +525,7 @@ def main(args):
             )
 
             print(
-                f"Producing {args.iterations} messages to topic '{args.topic}'. ^C to exit.\n"
+                f"""\nProducing {args.iterations} messages to topic '{args.topic}' via client.id '{producer_conf["client.id"]}'. ^C to exit.\n"""
             )
             for msg in range(args.iterations):
                 # Serve on_delivery callbacks from previous calls to produce()
