@@ -18,6 +18,7 @@
 # Python emulator of the Kafka source connector Datagen
 
 import os
+import re
 import sys
 import json
 import time
@@ -507,11 +508,23 @@ def main(args):
             )  # override with the additional config
             schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
+            # Client ID
+            if args.client_id is None:
+                client_id = f"{os.path.splitext(FILE_APP)[0]}_{hashlib.sha1(f'{args.topic}@{args.schema_filename}'.encode()).hexdigest()[:8]}"
+            else:
+                # Sanitise client id
+                client_id = re.sub(
+                    "[^a-z0-9\.\_\-]",
+                    "",
+                    args.client_id,
+                    flags=re.IGNORECASE,
+                )
+
             # Producer config
             producer_conf = {
                 "acks": 0,
                 "bootstrap.servers": args.bootstrap_servers,
-                "client.id": f"{os.path.splitext(FILE_APP)[0]}_{hashlib.sha1(f'{args.topic}@{args.schema_filename}'.encode()).hexdigest()[:8]}",
+                "client.id": client_id[:255],
             }
             producer_conf.update(
                 producer_conf_additional
@@ -592,6 +605,13 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Python emulator of the Kafka source connector Datagen"
+    )
+    parser.add_argument(
+        "--client-id",
+        dest="client_id",
+        type=str,
+        help=f"Producer's Client ID (if not set the default is {os.path.splitext(FILE_APP)[0]}_XXXXXXXX, where XXXXXXXX is a unique id based on topic and schema filename)",
+        default=None,
     )
     parser.add_argument(
         "--schema-filename",

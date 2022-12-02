@@ -18,7 +18,8 @@
 ## Usage and help
 <pre>
 usage: <span style="color:green">
-  pydatagen.py [-h] --schema-filename SCHEMA_FILENAME
+  pydatagen.py [-h] [--client-id CLIENT_ID] 
+               --schema-filename SCHEMA_FILENAME
                --topic TOPIC [--headers-filename HEADERS_FILENAME] [--dry-run]
                [--keyfield KEYFIELD] [--key-json]
                [--bootstrap-servers BOOTSTRAP_SERVERS]
@@ -32,6 +33,9 @@ usage: <span style="color:green">
 </span>
 options:<span style="color:green">
   -h, --help            show this help message and exit
+  --client-id CLIENT_ID
+                        Producer's Client ID (if not set the default is pydatagen_XXXXXXXX, where XXXXXXXX is a unique id based on topic and schema
+                        filename)
   --schema-filename SCHEMA_FILENAME
                         Avro schema file name (files must be inside the folder resources/)
   --keyfield KEYFIELD   Name of the field to be used as message key (required if argument --key-json is set)
@@ -117,7 +121,7 @@ python3 pydatagen.py --schema-filename gaming_players.avro \
 </pre>
 ### Output
 <pre style="color:grey">
-Producing 10 messages to topic 'test2'. ^C to exit.
+Producing 10 messages to topic 'test2' via client.id 'pydatagen_a7cc48eb'. ^C to exit.
 
 message #1: {'player_id': 1079, 'player_name': 'Nertie Zuker', 'ip': '219.151.0.93'}
 headers: {'program': 'python', 'version': '3.10.8', 'node': 'P3W32CDKHC', 'environment': 'test'}
