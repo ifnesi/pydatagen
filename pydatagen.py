@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Copyright 2022 Confluent Inc.
@@ -337,7 +336,6 @@ class AvroParser:
 
         # Generate random data
         for field_name, params in payload_fields.items():
-
             if payload.get(field_name) is None:
                 payload[field_name] = None
 
@@ -670,14 +668,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--iterations",
-        help="Number of messages to be sent",
+        help="Number of messages to be sent (default: 9999999999999)",
         dest="iterations",
         default=9999999999999,
         type=int,
     )
     parser.add_argument(
         "--interval",
-        help="Max interval between messages (in milliseconds)",
+        help="Max interval between messages in milliseconds (default: 500))",
         dest="interval",
         default=500,
         type=int,
@@ -693,14 +691,14 @@ if __name__ == "__main__":
         "--kafka-section",
         dest="kafka_section",
         type=str,
-        help=f"Section in the config file related to the Kafka cluster",
+        help=f"Section in the config file related to the Kafka cluster (e.g. kafka)",
         default=None,
     )
     parser.add_argument(
         "--sr-section",
         dest="sr_section",
         type=str,
-        help=f"Section in the config file related to the Schema Registry",
+        help=f"Section in the config file related to the Schema Registry (e.g. schema-registry)",
         default=None,
     )
     parser.add_argument(
