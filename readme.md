@@ -201,7 +201,7 @@ python3 pydatagen.py --schema-filename users_schema.avro
                      --sr-section schema-registry
 ```
 
-Where cc_config.ini is a file as shown below and located at config/cc_config.ini:
+Where ```cc_config.ini``` is a file as shown below and located at ```config/cc_config.ini```:
 ```
 [kafka]
 bootstrap.servers = {{ host:port }}  --> if set, it will override the --bootstrap-servers cli argument
@@ -218,23 +218,45 @@ basic.auth.user.info = {{ SR_API_KEY }}:{{ SR_API_SECRET }}
 ```
 Producing 10 messages to topic 'demo_users' via client.id 'pydatagen_2f92fe12'. ^C to exit.
 
-message #1: {'registertime': 1490229110748, 'userid': 'User_3', 'regionid': 'Region_5', 'gender': 'OTHER'}
-key: User_3
-message #2: {'registertime': 1508533064518, 'userid': 'User_4', 'regionid': 'Region_1', 'gender': 'OTHER'}
+message #1: {'registertime': 1510578677035, 'userid': 'User_1', 'regionid': 'Region_5', 'gender': 'FEMALE'}
+key: User_1
+message #2: {'registertime': 1511882009729, 'userid': 'User_5', 'regionid': 'Region_2', 'gender': 'MALE'}
+key: User_5
+message #3: {'registertime': 1494577280510, 'userid': 'User_4', 'regionid': 'Region_1', 'gender': 'FEMALE'}
 key: User_4
-message #3: {'registertime': 1488363404557, 'userid': 'User_2', 'regionid': 'Region_4', 'gender': 'OTHER'}
-key: User_2
-message #4: {'registertime': 1488673941448, 'userid': 'User_7', 'regionid': 'Region_6', 'gender': 'FEMALE'}
+> Message successfully produced to demo_users: Partition = 5, Offset = None
+
+> Message successfully produced to demo_users: Partition = 0, Offset = None
+
+> Message successfully produced to demo_users: Partition = 3, Offset = None
+
+message #4: {'registertime': 1505497202196, 'userid': 'User_4', 'regionid': 'Region_9', 'gender': 'OTHER'}
+key: User_4
+> Message successfully produced to demo_users: Partition = 3, Offset = None
+
+message #5: {'registertime': 1512624021620, 'userid': 'User_7', 'regionid': 'Region_7', 'gender': 'FEMALE'}
 key: User_7
-message #5: {'registertime': 1492621916417, 'userid': 'User_8', 'regionid': 'Region_1', 'gender': 'OTHER'}
-key: User_8
-message #6: {'registertime': 1513698128691, 'userid': 'User_8', 'regionid': 'Region_6', 'gender': 'MALE'}
-key: User_8
-message #7: {'registertime': 1498463200836, 'userid': 'User_2', 'regionid': 'Region_5', 'gender': 'OTHER'}
-key: User_2
-message #8: {'registertime': 1518705682958, 'userid': 'User_4', 'regionid': 'Region_6', 'gender': 'MALE'}
+> Message successfully produced to demo_users: Partition = 3, Offset = None
+
+message #6: {'registertime': 1516496385918, 'userid': 'User_4', 'regionid': 'Region_7', 'gender': 'MALE'}
 key: User_4
-message #9: {'registertime': 1495625225058, 'userid': 'User_3', 'regionid': 'Region_4', 'gender': 'MALE'}
-key: User_3
-message #10: {'registertime': 1497730935385, 'userid': 'User_3', 'regionid': 'Region_9', 'gender': 'MALE'}
+> Message successfully produced to demo_users: Partition = 3, Offset = None
+
+message #7: {'registertime': 1496322719875, 'userid': 'User_1', 'regionid': 'Region_4', 'gender': 'MALE'}
+key: User_1
+> Message successfully produced to demo_users: Partition = 0, Offset = None
+
+message #8: {'registertime': 1509869837448, 'userid': 'User_2', 'regionid': 'Region_2', 'gender': 'FEMALE'}
+key: User_2
+> Message successfully produced to demo_users: Partition = 0, Offset = None
+
+message #9: {'registertime': 1502462026766, 'userid': 'User_5', 'regionid': 'Region_1', 'gender': 'FEMALE'}
+key: User_5
+> Message successfully produced to demo_users: Partition = 5, Offset = None
+
+message #10: {'registertime': 1493905105632, 'userid': 'User_1', 'regionid': 'Region_7', 'gender': 'OTHER'}
+key: User_1
+
+Flushing messages...
+> Message successfully produced to demo_users: Partition = 0, Offset = None
 ```
