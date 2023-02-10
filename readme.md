@@ -55,7 +55,7 @@ options:<span style="color:green">
                         Bootstrap broker(s) (host[:port])
 
   --schema-registry SCHEMA_REGISTRY
-                        Schema Registry (http(s)://host[:port]
+                        Schema Registry (http(s)://host[:port])
 
   --iterations ITERATIONS
                         Number of messages to be sent (default: 9999999999999)

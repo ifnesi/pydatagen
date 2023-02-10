@@ -661,7 +661,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--schema-registry",
-        help="Schema Registry (http(s)://host[:port]",
+        help="Schema Registry (http(s)://host[:port])",
         dest="schema_registry",
         default="http://localhost:8081",
         type=str,
