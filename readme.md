@@ -16,8 +16,8 @@
  - Support to JSON, JSON_SR and PROTOBUF schemas
 
 ## Usage and help
-<pre>
-usage: <span style="color:green">
+```
+usage:
   pydatagen.py [-h] [--client-id CLIENT_ID] 
                --schema-filename SCHEMA_FILENAME
                --topic TOPIC [--headers-filename HEADERS_FILENAME] [--dry-run]
@@ -30,8 +30,8 @@ usage: <span style="color:green">
                [--kafka-section KAFKA_SECTION]
                [--sr-section SR_SECTION]
                [--silent]
-</span>
-options:<span style="color:green">
+
+options:
   -h, --help            show this help message and exit
   --client-id CLIENT_ID
                         Producer's Client ID (if not set the default is pydatagen_XXXXXXXX, where XXXXXXXX is a unique id based on topic and schema
@@ -73,17 +73,17 @@ options:<span style="color:green">
 
   --silent              Do not display results on screen (not applicable to dry-run mode)
   </span>
-</pre>
+```
 
 ## Examples:
 ### Input (dry-run mode)
-<pre style="color:green">
+```
 python3 pydatagen.py --schema-filename gaming_players.avro --dry-run \
                      --headers-filename dynamic_000.py --keyfield player_id \
                      --key-json --interval 1000 --iterations 10
-</pre>
+```
 ### Output (dry-run mode)
-<pre style="color:grey">
+```
 Producing 10 messages in dry-run mode. ^C to exit.
 
 message #1: {'player_id': 1072, 'player_name': 'Talbot Cashell', 'ip': '104.16.237.57'}
@@ -125,16 +125,16 @@ key: {"player_id": 1051}
 message #10: {'player_id': 1095, 'player_name': 'Chryste Wren', 'ip': '141.46.127.99'}
 headers: {'program': 'python', 'version': '3.10.8', 'node': 'P3W32CDKHC', 'environment': 'test'}
 key: {"player_id": 1095}
-</pre>
+```
 
-### Input
-<pre style="color:green">
+### Input (local Kafka/SR)
+```
 python3 pydatagen.py --schema-filename gaming_players.avro \
                      --headers-filename dynamic_000.py --keyfield player_id \
                      --key-json --interval 1000 --iterations 10 --topic test2
-</pre>
-### Output
-<pre style="color:grey">
+```
+### Output (local Kafka/SR)
+```
 Producing 10 messages to topic 'test2' via client.id 'pydatagen_a7cc48eb'. ^C to exit.
 
 message #1: {'player_id': 1079, 'player_name': 'Nertie Zuker', 'ip': '219.151.0.93'}
@@ -188,4 +188,53 @@ key: {"player_id": 1100}
 
 Flushing messages...
 > Message successfully produced to test2: Partition = 0, Offset = 400
-</pre>
+```
+
+### Input (Confluent Cloud)
+```
+python3 pydatagen.py --schema-filename users_schema.avro
+                     --topic demo_users
+                     --keyfield userid
+                     --iterations 10
+                     --config-filename cc_config.ini
+                     --kafka-section kafka
+                     --sr-section schema-registry
+```
+
+Where cc_config.ini is a file as shown below and located at config/cc_config.ini:
+```
+[kafka]
+bootstrap.servers = {{ host:port }}  --> if set, it will override the --bootstrap-servers cli argument
+security.protocol = SASL_SSL
+sasl.mechanisms = PLAIN
+sasl.username = {{ CLUSTER_API_KEY }}
+sasl.password = {{ CLUSTER_API_SECRET }}
+[schema-registry]
+url = {{ http(s)://url:port }}  --> if set, it will override the --schema-registry cli argument
+basic.auth.user.info = {{ SR_API_KEY }}:{{ SR_API_SECRET }}
+```
+
+### Output (Confluent Cloud)
+```
+Producing 10 messages to topic 'demo_users' via client.id 'pydatagen_2f92fe12'. ^C to exit.
+
+message #1: {'registertime': 1490229110748, 'userid': 'User_3', 'regionid': 'Region_5', 'gender': 'OTHER'}
+key: User_3
+message #2: {'registertime': 1508533064518, 'userid': 'User_4', 'regionid': 'Region_1', 'gender': 'OTHER'}
+key: User_4
+message #3: {'registertime': 1488363404557, 'userid': 'User_2', 'regionid': 'Region_4', 'gender': 'OTHER'}
+key: User_2
+message #4: {'registertime': 1488673941448, 'userid': 'User_7', 'regionid': 'Region_6', 'gender': 'FEMALE'}
+key: User_7
+message #5: {'registertime': 1492621916417, 'userid': 'User_8', 'regionid': 'Region_1', 'gender': 'OTHER'}
+key: User_8
+message #6: {'registertime': 1513698128691, 'userid': 'User_8', 'regionid': 'Region_6', 'gender': 'MALE'}
+key: User_8
+message #7: {'registertime': 1498463200836, 'userid': 'User_2', 'regionid': 'Region_5', 'gender': 'OTHER'}
+key: User_2
+message #8: {'registertime': 1518705682958, 'userid': 'User_4', 'regionid': 'Region_6', 'gender': 'MALE'}
+key: User_4
+message #9: {'registertime': 1495625225058, 'userid': 'User_3', 'regionid': 'Region_4', 'gender': 'MALE'}
+key: User_3
+message #10: {'registertime': 1497730935385, 'userid': 'User_3', 'regionid': 'Region_9', 'gender': 'MALE'}
+```
