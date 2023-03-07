@@ -32,12 +32,15 @@ import configparser
 from functools import lru_cache
 from importlib import import_module
 from confluent_kafka import Producer
+from confluent_kafka.admin import AdminClient
 from confluent_kafka.serialization import (
     SerializationContext,
     MessageField,
 )
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
+
+from utils.murmur2 import Murmur2Partitioner
 
 
 # Global Variables
@@ -467,7 +470,7 @@ def main(args):
         try:
             # Read config file (if any)
             schema_registry_conf_additional = dict()
-            producer_conf_additional = dict()
+            kafka_conf_additional = dict()
             if args.config_filename:
                 config_filename = os.path.join(
                     FOLDER_APP,
@@ -483,7 +486,7 @@ def main(args):
                             config_data,
                             args.sr_section,
                         )
-                        producer_conf_additional = get_config_section_data(
+                        kafka_conf_additional = get_config_section_data(
                             args.config_filename,
                             config_data,
                             args.kafka_section,
@@ -519,15 +522,27 @@ def main(args):
                 )
 
             # Producer config
-            producer_conf = {
+            kafka_conf = {
                 "acks": 0,
                 "bootstrap.servers": args.bootstrap_servers,
                 "client.id": client_id[:255],
             }
-            producer_conf.update(
-                producer_conf_additional
+            kafka_conf.update(
+                kafka_conf_additional
             )  # override with the additional config
-            producer = Producer(producer_conf)
+            producer = Producer(kafka_conf)
+
+            kafka_admin_client = AdminClient(kafka_conf)
+            if not args.crc32:
+                custom_partitioner = Murmur2Partitioner()
+                # Get number of partitions available on the topic
+                partitions = kafka_admin_client.list_topics(args.topic).topics.get(
+                    args.topic
+                )
+                if partitions is not None:
+                    partitions = len(partitions.partitions)
+                else:
+                    partitions = 1
 
             avro_serializer = AvroSerializer(
                 schema_registry_client,
@@ -536,7 +551,7 @@ def main(args):
             )
 
             print(
-                f"""\nProducing {args.iterations} messages to topic '{args.topic}' via client.id '{producer_conf["client.id"]}'. ^C to exit.\n"""
+                f"""\nProducing {args.iterations} messages to topic '{args.topic}' via client.id '{kafka_conf["client.id"]}'. ^C to exit.\n"""
             )
             for msg in range(args.iterations):
                 # Serve on_delivery callbacks from previous calls to produce()
@@ -560,24 +575,33 @@ def main(args):
                     }
 
                     if not args.silent:
-                        producer_args.update({"on_delivery": avsc.delivery_report})
+                        producer_args["on_delivery"] = avsc.delivery_report
                         print(f"message #{msg+1}: {message}")
 
                     # Set headers
                     if args.headers_filename:
                         message_headers = avsc.set_headers(args.headers_filename)
-                        producer_args.update({"headers": message_headers})
+                        producer_args["headers"] = message_headers
                         if not args.silent:
                             print(f"headers: {message_headers}")
 
                     # Set key
                     if message.get(args.keyfield):
                         message_key = avsc.set_key(
-                            message, args.key_json, args.keyfield
+                            message,
+                            args.key_json,
+                            args.keyfield,
                         )
-                        producer_args.update({"key": message_key})
+                        producer_args["key"] = message_key
                         if not args.silent:
                             print(f"key: {message_key}")
+
+                    # Partitioner
+                    if not args.crc32:
+                        producer_args["partition"] = custom_partitioner.partition(
+                            message_key.encode(),
+                            partitions,
+                        )
 
                     # Publish message
                     producer.produce(**producer_args)
@@ -706,6 +730,12 @@ if __name__ == "__main__":
         dest="silent",
         action="store_true",
         help="Do not display results on screen (not applicable to dry-run mode)",
+    )
+    parser.add_argument(
+        "--crc32",
+        dest="crc32",
+        help=f"Set librdkafka's default partitioner (crc32), otherwise it will be used murmur2_random",
+        action="store_true",
     )
 
     main(parser.parse_args())

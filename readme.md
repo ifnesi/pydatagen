@@ -30,6 +30,7 @@ usage:
                [--kafka-section KAFKA_SECTION]
                [--sr-section SR_SECTION]
                [--silent]
+               [--crc32]
 
 options:
   -h, --help            show this help message and exit
@@ -72,6 +73,8 @@ options:
                         Section in the config file related to the Schema Registry (e.g. schema-registry)
 
   --silent              Do not display results on screen (not applicable to dry-run mode)
+
+  --crc32               Set librdkafka's default partitioner (crc32), otherwise it will be used murmur2_random
   </span>
 ```
 
