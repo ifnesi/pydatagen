@@ -32,15 +32,12 @@ import configparser
 from functools import lru_cache
 from importlib import import_module
 from confluent_kafka import Producer
-from confluent_kafka.admin import AdminClient
 from confluent_kafka.serialization import (
     SerializationContext,
     MessageField,
 )
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
-
-from utils.murmur2 import Murmur2Partitioner
 
 
 # Global Variables
@@ -155,7 +152,7 @@ class AvroParser:
             print(f"> ERROR: Delivery failed for Data record {msg.key()}: {err}\n")
         else:
             print(
-                f"> Message successfully produced to {msg.topic()}: Partition = {msg.partition()}, Offset = {msg.offset()}\n"
+                f"> Message successfully produced to Topic '{msg.topic()}': Key = {msg.key().decode()}, Partition = {msg.partition()}, Offset = {msg.offset()}\n"
             )
 
     @staticmethod
@@ -530,19 +527,14 @@ def main(args):
             kafka_conf.update(
                 kafka_conf_additional
             )  # override with the additional config
-            producer = Producer(kafka_conf)
 
-            kafka_admin_client = AdminClient(kafka_conf)
-            if not args.crc32:
-                custom_partitioner = Murmur2Partitioner()
-                # Get number of partitions available on the topic
-                partitions = kafka_admin_client.list_topics(args.topic).topics.get(
-                    args.topic
-                )
-                if partitions is not None:
-                    partitions = len(partitions.partitions)
-                else:
-                    partitions = 1
+            # Set partitioner
+            if args.crc32:
+                kafka_conf["partitioner"] = "consistent_random"
+            else:
+                kafka_conf["partitioner"] = "murmur2_random"
+
+            producer = Producer(kafka_conf)
 
             avro_serializer = AvroSerializer(
                 schema_registry_client,
@@ -595,13 +587,6 @@ def main(args):
                         producer_args["key"] = message_key
                         if not args.silent:
                             print(f"key: {message_key}")
-
-                    # Partitioner
-                    if not args.crc32:
-                        producer_args["partition"] = custom_partitioner.partition(
-                            message_key.encode(),
-                            partitions,
-                        )
 
                     # Publish message
                     producer.produce(**producer_args)
