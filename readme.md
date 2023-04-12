@@ -23,6 +23,7 @@ usage:
                --topic TOPIC [--headers-filename HEADERS_FILENAME] [--dry-run]
                [--keyfield KEYFIELD] [--key-json]
                [--bootstrap-servers BOOTSTRAP_SERVERS]
+               [--partitioner {murmur2_random,murmur2,consistent_random,consistent,fnv1a_random,fnv1a,random}]
                [--schema-registry SCHEMA_REGISTRY]
                [--iterations ITERATIONS]
                [--interval INTERVAL]
@@ -30,51 +31,36 @@ usage:
                [--kafka-section KAFKA_SECTION]
                [--sr-section SR_SECTION]
                [--silent]
-               [--crc32]
 
 options:
   -h, --help            show this help message and exit
   --client-id CLIENT_ID
-                        Producer's Client ID (if not set the default is pydatagen_XXXXXXXX, where XXXXXXXX is a unique id based on topic and schema
-                        filename)
-
+                        Producer's Client ID (if not set the default is pydatagen_XXXXXXXX, where XXXXXXXX is a unique id based on topic and
+                        schema filename)
   --schema-filename SCHEMA_FILENAME
                         Avro schema file name (files must be inside the folder resources/)
-
   --keyfield KEYFIELD   Name of the field to be used as message key (required if argument --key-json is set)
-
   --key-json            Set key as JSON -> {{keyfield: keyfield_value}}
-
   --topic TOPIC         Topic name (required if argument --dry-run is not set)
-
   --headers-filename HEADERS_FILENAME
                         Select headers filename (files must be inside the folder headers/)
-
   --dry-run             Generate and display messages without having them publish
-
   --bootstrap-servers BOOTSTRAP_SERVERS
                         Bootstrap broker(s) (host[:port])
-
+  --partitioner {murmur2_random,murmur2,consistent_random,consistent,fnv1a_random,fnv1a,random}
+                        Set partitioner (default: murmur2_random)
   --schema-registry SCHEMA_REGISTRY
                         Schema Registry (http(s)://host[:port])
-
   --iterations ITERATIONS
                         Number of messages to be sent (default: 9999999999999)
-
   --interval INTERVAL   Max interval between messages in milliseconds (default: 500))
-
   --config-filename CONFIG_FILENAME
                         Select config filename for additional configuration, such as credentials (files must be inside the folder config/)
-
   --kafka-section KAFKA_SECTION
                         Section in the config file related to the Kafka cluster (e.g. kafka)
-
   --sr-section SR_SECTION
                         Section in the config file related to the Schema Registry (e.g. schema-registry)
-
   --silent              Do not display results on screen (not applicable to dry-run mode)
-
-  --crc32               Set librdkafka's default partitioner (crc32), otherwise it will be used murmur2_random
   </span>
 ```
 

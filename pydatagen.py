@@ -523,16 +523,11 @@ def main(args):
                 "acks": 0,
                 "bootstrap.servers": args.bootstrap_servers,
                 "client.id": client_id[:255],
+                "partitioner": args.partitioner,
             }
             kafka_conf.update(
                 kafka_conf_additional
             )  # override with the additional config
-
-            # Set partitioner
-            if args.crc32:
-                kafka_conf["partitioner"] = "consistent_random"
-            else:
-                kafka_conf["partitioner"] = "murmur2_random"
 
             producer = Producer(kafka_conf)
 
@@ -610,6 +605,15 @@ def main(args):
 
 
 if __name__ == "__main__":
+    PARTITIONERS = [
+        "murmur2_random",
+        "murmur2",
+        "consistent_random",
+        "consistent",
+        "fnv1a_random",
+        "fnv1a",
+        "random",
+    ]
     parser = argparse.ArgumentParser(
         description="Python emulator of the Kafka source connector Datagen"
     )
@@ -669,6 +673,14 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
+        "--partitioner",
+        dest="partitioner",
+        help=f"Set partitioner (default: {PARTITIONERS[0]})",
+        type=str,
+        default=PARTITIONERS[0],
+        choices=PARTITIONERS,
+    )
+    parser.add_argument(
         "--schema-registry",
         help="Schema Registry (http(s)://host[:port])",
         dest="schema_registry",
@@ -715,12 +727,6 @@ if __name__ == "__main__":
         dest="silent",
         action="store_true",
         help="Do not display results on screen (not applicable to dry-run mode)",
-    )
-    parser.add_argument(
-        "--crc32",
-        dest="crc32",
-        help=f"Set librdkafka's default partitioner (crc32: consistent_random), otherwise it will be used murmur2_random",
-        action="store_true",
     )
 
     main(parser.parse_args())
