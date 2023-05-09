@@ -181,12 +181,12 @@ Flushing messages...
 
 ### Input (Confluent Cloud)
 ```
-python3 pydatagen.py --schema-filename users_schema.avro
-                     --topic demo_users
-                     --keyfield userid
-                     --iterations 10
-                     --config-filename cc_config.ini
-                     --kafka-section kafka
+python3 pydatagen.py --schema-filename users_schema.avro \
+                     --topic demo_users \
+                     --keyfield userid \
+                     --iterations 10 \
+                     --config-filename cc_config.ini \
+                     --kafka-section kafka \
                      --sr-section schema-registry
 ```
 
