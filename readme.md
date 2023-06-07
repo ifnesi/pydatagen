@@ -13,7 +13,7 @@
  - Message headers can be set dynamically (python script, make sure to set a global variable called "headers") or statically (json file). All header files must be inside the folder "headers/"
 
 ## To do:
- - Support to JSON, JSON_SR and PROTOBUF schemas
+ - Support to JSON and PROTOBUF schemas
 
 ## Usage and help
 ```
