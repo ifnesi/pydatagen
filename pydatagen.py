@@ -24,6 +24,7 @@ import time
 import exrex
 import random
 import hashlib
+import logging
 import argparse
 import avro.schema
 import commentjson
@@ -39,6 +40,8 @@ from confluent_kafka.serialization import (
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 
+from utils import GracefulShutdown
+
 
 # Global Variables
 FILE_APP = os.path.split(__file__)[-1]
@@ -46,6 +49,12 @@ FOLDER_APP = os.path.dirname(__file__)
 FOLDER_HEADERS = "headers"
 FOLDER_SCHEMAS = "resources"
 FOLDER_CONFIG = "config"
+
+logging.basicConfig(
+    format="%(asctime)s.%(msecs)03d [%(levelname)s]: %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 # General functions
@@ -149,10 +158,12 @@ class AvroParser:
         """
 
         if err is not None:
-            print(f"> ERROR: Delivery failed for Data record {msg.key()}: {err}\n")
+            logging.error(
+                f"<Callback> Delivery failed for Data record {msg.key()}: {err}"
+            )
         else:
-            print(
-                f"> Message successfully produced to Topic '{msg.topic()}': Key = {msg.key().decode()}, Partition = {msg.partition()}, Offset = {msg.offset()}\n"
+            logging.info(
+                f"<Callback> Message successfully produced to Topic '{msg.topic()}': Key = {msg.key().decode()}, Partition = {msg.partition()}, Offset = {msg.offset()}"
             )
 
     @staticmethod
@@ -436,7 +447,9 @@ def main(args):
     avsc = AvroParser(avro_schema_filename)
 
     if args.dry_run:
-        print(f"Producing {args.iterations} messages in dry-run mode. ^C to exit.\n")
+        logging.info(
+            f"Producing {args.iterations} messages in dry-run mode. ^C to exit."
+        )
         try:
             for msg in range(args.iterations):
                 start_time = time.time()
@@ -444,23 +457,22 @@ def main(args):
                     avsc.avro_schema_original,
                     keyfield=args.keyfield,
                 )
-                print(f"message #{msg+1}: {message}")
+                logging.info(f"message #{msg+1}: {message}")
 
                 # Set headers
                 if args.headers_filename:
                     message_headers = avsc.set_headers(args.headers_filename)
-                    print(f"headers: {message_headers}")
+                    logging.info(f"headers: {message_headers}")
 
                 # Set key
                 if message.get(args.keyfield):
                     message_key = avsc.set_key(message, args.key_json, args.keyfield)
-                    print(f"key: {message_key}")
+                    logging.info(f"key: {message_key}")
 
-                print()
                 real_sleep(args.interval, start_time)
 
         except KeyboardInterrupt:
-            print("CTRL-C pressed by user")
+            logging.info("CTRL-C pressed by user")
 
     else:
         producer = None
@@ -537,67 +549,72 @@ def main(args):
                 avsc.data_dict,
             )
 
-            print(
-                f"""\nProducing {args.iterations} messages to topic '{args.topic}' via client.id '{kafka_conf["client.id"]}'. ^C to exit.\n"""
+            logging.info(
+                f"""Producing {args.iterations} messages to topic '{args.topic}' via client.id '{kafka_conf["client.id"]}'. ^C to exit."""
             )
+
+            gs = GracefulShutdown(producer)
+
             for msg in range(args.iterations):
                 # Serve on_delivery callbacks from previous calls to produce()
                 producer.poll(0.0)
                 start_time = time.time()
-                try:
-                    message = avsc.generate_payload(
-                        avsc.avro_schema_original,
-                        keyfield=args.keyfield,
-                    )
 
-                    producer_args = {
-                        "topic": args.topic,
-                        "value": avro_serializer(
-                            message,
-                            SerializationContext(
-                                args.topic,
-                                MessageField.VALUE,
-                            ),
-                        ),
-                    }
-
-                    if not args.silent:
-                        producer_args["on_delivery"] = avsc.delivery_report
-                        print(f"message #{msg+1}: {message}")
-
-                    # Set headers
-                    if args.headers_filename:
-                        message_headers = avsc.set_headers(args.headers_filename)
-                        producer_args["headers"] = message_headers
-                        if not args.silent:
-                            print(f"headers: {message_headers}")
-
-                    # Set key
-                    if message.get(args.keyfield):
-                        message_key = avsc.set_key(
-                            message,
-                            args.key_json,
-                            args.keyfield,
+                with gs as _:
+                    try:
+                        message = avsc.generate_payload(
+                            avsc.avro_schema_original,
+                            keyfield=args.keyfield,
                         )
-                        producer_args["key"] = message_key
+
+                        producer_args = {
+                            "topic": args.topic,
+                            "value": avro_serializer(
+                                message,
+                                SerializationContext(
+                                    args.topic,
+                                    MessageField.VALUE,
+                                ),
+                            ),
+                        }
+
                         if not args.silent:
-                            print(f"key: {message_key}")
+                            producer_args["on_delivery"] = avsc.delivery_report
+                            logging.info(f"message #{msg+1}: {message}")
 
-                    # Publish message
-                    producer.produce(**producer_args)
+                        # Set headers
+                        if args.headers_filename:
+                            message_headers = avsc.set_headers(args.headers_filename)
+                            producer_args["headers"] = message_headers
+                            if not args.silent:
+                                logging.info(f"headers: {message_headers}")
 
-                except KeyboardInterrupt:
-                    print("CTRL-C pressed by user")
-                    break
+                        # Set key
+                        if message.get(args.keyfield):
+                            message_key = avsc.set_key(
+                                message,
+                                args.key_json,
+                                args.keyfield,
+                            )
+                            producer_args["key"] = message_key
+                            if not args.silent:
+                                logging.info(f"key: {message_key}")
 
-                except ValueError as err:
-                    print("> ERROR: Invalid input, discarding record: {err}")
-                    continue
+                        # Publish message
+                        producer.produce(**producer_args)
 
-                finally:
-                    real_sleep(args.interval, start_time)
+                    except KeyboardInterrupt:
+                        logging.info("CTRL-C pressed by user")
+                        break
 
-            print("\nFlushing messages...")
+                    except ValueError as err:
+                        logging.ERROR("Invalid input, discarding record: {err}")
+                        continue
+
+                    finally:
+                        real_sleep(args.interval, start_time)
+
+            logging.info("Flushing messages...")
             producer.flush()
 
         except Exception as err:
