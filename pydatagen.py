@@ -79,9 +79,10 @@ def get_config_section_data(
     elif section in config_data.sections():
         return dict(config_data[section])
     else:
-        sys.exit(
+        logging.error(
             f'{FILE_APP}: error: when processing config file "{config_filename}": section "{section}" not found'
         )
+        sys.exit(-1)
 
 
 class AvroParser:
@@ -109,9 +110,10 @@ class AvroParser:
             with open(full_filename, "r") as f:
                 return commentjson.loads(f.read())
         else:
-            sys.exit(
+            logging.error(
                 f"{FILE_APP}: error: Static headers filename not found: {full_filename}"
             )
+            sys.exit(-1)
 
     @staticmethod
     @lru_cache
@@ -121,9 +123,10 @@ class AvroParser:
         if os.path.isfile(full_filename):
             return import_module(f"{FOLDER_HEADERS}.{filename[:-3]}")
         else:
-            sys.exit(
+            logging.error(
                 f"{FILE_APP}: error: Dynamic headers filename not found: {full_filename}"
             )
+            sys.exit(-1)
 
     @staticmethod
     def data_dict(
@@ -185,13 +188,15 @@ class AvroParser:
                     self.avro_schema_original = commentjson.loads(f.read())
 
             except Exception as err:
-                sys.exit(
+                logging.error(
                     f'{FILE_APP}: error: when processing schema file "{avro_schema_filename}": {err}'
                 )
+                sys.exit(-1)
         else:
-            sys.exit(
+            logging.error(
                 f"{FILE_APP}: error: Schema filename not found: {avro_schema_filename}"
             )
+            sys.exit(-1)
 
         # Validate avro schema (throws exception in case of error)
         avro.schema.parse(json.dumps(self.avro_schema_original))
@@ -226,9 +231,10 @@ class AvroParser:
             else:
                 return self._get_static_headers(headers_filename)
         except Exception as err:
-            sys.exit(
+            logging.error(
                 f'{FILE_APP}: error: when processing headers file "{headers_filename}": {err}'
             )
+            sys.exit(-1)
 
     def set_key(self, message: dict, key_json: bool, keyfield: str):
         """Set message key"""
@@ -501,13 +507,15 @@ def main(args):
                             args.kafka_section,
                         )
                     except Exception as err:
-                        sys.exit(
+                        logging.error(
                             f'{FILE_APP}: error: when processing config file "{args.config_filename}": {err}'
                         )
+                        sys.exit(-1)
                 else:
-                    sys.exit(
+                    logging.error(
                         f'{FILE_APP}: error: when processing config file "{config_filename}": file not found'
                     )
+                    sys.exit(-1)
 
             # Schema Registry config
             schema_registry_conf = {
@@ -618,7 +626,8 @@ def main(args):
             producer.flush()
 
         except Exception as err:
-            sys.exit(f"{FILE_APP}: error: when publishing messages: {err}")
+            logging.error(f"{FILE_APP}: error: when publishing messages: {err}")
+            sys.exit(-1)
 
 
 if __name__ == "__main__":
