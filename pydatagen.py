@@ -79,7 +79,7 @@ def get_config_section_data(
     elif section in config_data.sections():
         return dict(config_data[section])
     else:
-        logging.error(
+        logging.critical(
             f'{FILE_APP}: error: when processing config file "{config_filename}": section "{section}" not found'
         )
         sys.exit(-1)
@@ -110,7 +110,7 @@ class AvroParser:
             with open(full_filename, "r") as f:
                 return commentjson.loads(f.read())
         else:
-            logging.error(
+            logging.critical(
                 f"{FILE_APP}: error: Static headers filename not found: {full_filename}"
             )
             sys.exit(-1)
@@ -123,7 +123,7 @@ class AvroParser:
         if os.path.isfile(full_filename):
             return import_module(f"{FOLDER_HEADERS}.{filename[:-3]}")
         else:
-            logging.error(
+            logging.critical(
                 f"{FILE_APP}: error: Dynamic headers filename not found: {full_filename}"
             )
             sys.exit(-1)
@@ -188,12 +188,12 @@ class AvroParser:
                     self.avro_schema_original = commentjson.loads(f.read())
 
             except Exception as err:
-                logging.error(
+                logging.critical(
                     f'{FILE_APP}: error: when processing schema file "{avro_schema_filename}": {err}'
                 )
                 sys.exit(-1)
         else:
-            logging.error(
+            logging.critical(
                 f"{FILE_APP}: error: Schema filename not found: {avro_schema_filename}"
             )
             sys.exit(-1)
@@ -231,7 +231,7 @@ class AvroParser:
             else:
                 return self._get_static_headers(headers_filename)
         except Exception as err:
-            logging.error(
+            logging.critical(
                 f'{FILE_APP}: error: when processing headers file "{headers_filename}": {err}'
             )
             sys.exit(-1)
@@ -478,7 +478,7 @@ def main(args):
                 real_sleep(args.interval, start_time)
 
         except KeyboardInterrupt:
-            logging.info("CTRL-C pressed by user")
+            logging.warning("CTRL-C pressed by user")
 
     else:
         producer = None
@@ -507,12 +507,12 @@ def main(args):
                             args.kafka_section,
                         )
                     except Exception as err:
-                        logging.error(
+                        logging.critical(
                             f'{FILE_APP}: error: when processing config file "{args.config_filename}": {err}'
                         )
                         sys.exit(-1)
                 else:
-                    logging.error(
+                    logging.critical(
                         f'{FILE_APP}: error: when processing config file "{config_filename}": file not found'
                     )
                     sys.exit(-1)
@@ -612,7 +612,7 @@ def main(args):
                         producer.produce(**producer_args)
 
                     except KeyboardInterrupt:
-                        logging.info("CTRL-C pressed by user")
+                        logging.warning("CTRL-C pressed by user")
                         break
 
                     except ValueError as err:
@@ -626,7 +626,7 @@ def main(args):
             producer.flush()
 
         except Exception as err:
-            logging.error(f"{FILE_APP}: error: when publishing messages: {err}")
+            logging.critical(f"{FILE_APP}: error: when publishing messages: {err}")
             sys.exit(-1)
 
 
