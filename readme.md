@@ -20,7 +20,8 @@
 usage:
   pydatagen.py [-h] [--client-id CLIENT_ID] 
                --schema-filename SCHEMA_FILENAME
-               --topic TOPIC [--headers-filename HEADERS_FILENAME] [--dry-run]
+               --topic TOPIC
+               [--headers-filename HEADERS_FILENAME]
                [--keyfield KEYFIELD] [--key-json]
                [--bootstrap-servers BOOTSTRAP_SERVERS]
                [--partitioner {murmur2_random,murmur2,consistent_random,consistent,fnv1a_random,fnv1a,random}]
@@ -31,6 +32,7 @@ usage:
                [--kafka-section KAFKA_SECTION]
                [--sr-section SR_SECTION]
                [--silent]
+               [--dry-run]
 
 options:
   -h, --help            show this help message and exit
