@@ -166,7 +166,7 @@ class AvroParser:
             )
         else:
             logging.info(
-                f"<Callback> Message successfully produced to Topic '{msg.topic()}': Key = {msg.key().decode()}, Partition = {msg.partition()}, Offset = {msg.offset()}"
+                f"<Callback> Message successfully produced to Topic '{msg.topic()}': Key = {None if msg.key() is None else msg.key().decode()}, Partition = {msg.partition()}, Offset = {msg.offset()}"
             )
 
     @staticmethod
