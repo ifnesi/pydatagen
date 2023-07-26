@@ -8,3 +8,4 @@ __pycache__/
 config/*
 !config/example.ini
 !config/localhost.ini
+demo*.sh
