@@ -26,6 +26,7 @@ import random
 import hashlib
 import logging
 import argparse
+import datetime
 import avro.schema
 import commentjson
 import configparser
@@ -255,6 +256,7 @@ class AvroParser:
         avro_schema: dict,
         keyfield: str = None,
         is_recurring: bool = False,
+        args=None,
     ) -> dict:
         """
         Generate random payload as per AVRO schema
@@ -331,6 +333,7 @@ class AvroParser:
                                                 ),
                                             },
                                             is_recurring=True,
+                                            args=args,
                                         )
                                     )
 
@@ -341,6 +344,7 @@ class AvroParser:
                                     "arg.properties": field_type.get("arg.properties"),
                                 },
                                 is_recurring=True,
+                                args=args,
                             )
 
                         else:
@@ -408,9 +412,37 @@ class AvroParser:
                         iteration_start = params["arg.properties"][
                             args_properties_type
                         ].get("start", 0)
+                        ## This block is not part of the DataGen source connector, it is applicable only to pydatagen ###
+                        if isinstance(iteration_start, str):
+                            if iteration_start.lower() == "now":
+                                iteration_start = int(
+                                    datetime.datetime.now().timestamp()
+                                )
+                            elif iteration_start.lower() == "now_utc":
+                                iteration_start = int(
+                                    datetime.datetime.utcnow().timestamp()
+                                )
+                            elif iteration_start.lower() == "now_ms":
+                                iteration_start = int(
+                                    datetime.datetime.now().timestamp() * 1000
+                                )
+                            elif iteration_start.lower() == "now_utc_ms":
+                                iteration_start = int(
+                                    datetime.datetime.utcnow().timestamp() * 1000
+                                )
+                            else:
+                                iteration_start = 0
+                        ##################################################################################################
                         iteration_step = params["arg.properties"][
                             args_properties_type
                         ].get("step", 1)
+                        ## This block is not part of the DataGen source connector, it is applicable only to pydatagen ###
+                        if isinstance(iteration_step, str):
+                            if iteration_step.lower() == "interval":
+                                iteration_step = int(args.interval)
+                            else:
+                                iteration_step = 1
+                        ##################################################################################################
                         if self.payload_iteration_cache.get(field_name) is None:
                             self.payload_iteration_cache[field_name] = iteration_start
                         else:
@@ -462,6 +494,7 @@ def main(args):
                 message = avsc.generate_payload(
                     avsc.avro_schema_original,
                     keyfield=args.keyfield,
+                    args=args,
                 )
                 logging.info(f"message #{msg+1}: {message}")
 
@@ -573,6 +606,7 @@ def main(args):
                         message = avsc.generate_payload(
                             avsc.avro_schema_original,
                             keyfield=args.keyfield,
+                            args=args,
                         )
 
                         producer_args = {
