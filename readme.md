@@ -60,7 +60,7 @@
    ```
    - arg.properties can also be defined outside the field type defintion, see example on `credit_cards.avro`
  - Message headers can be set dynamically via:
-   - Python script: create a function (def) called headers (it must return a Dict object), see example on `headers/dynamic_000.py`
+   - Python script: create a function (def) called `headers()` (it must return a Dict object), see example on `headers/dynamic_000.py`
    - Statically: json file, see example on `headers/static_000.json`
    - **Important**: All header files must be inside the folder `headers/`
 
