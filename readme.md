@@ -1,4 +1,4 @@
-# Python emulator of the Kafka source connector Datagen
+# Python emulator of the Confluent Datagen source connector
 
 ## Requirements:
 - Python 3.8+
