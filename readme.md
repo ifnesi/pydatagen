@@ -2,13 +2,13 @@
 
 ## Requirements:
 - Python 3.8+
-- See file requirements.txt (`python3 -m pip install -r requirements.txt`)
+- Install python requirements (`python3 -m pip install -r requirements.txt`)
 
 ## Important:
- - This is a Kafka Producer and it does not use the Kafka Connect framework, also it is a single worker producer and `acks` is set to 0 (meaning, it will not wait for any acknowledgement from the broker)
- - The purpose of it is not to replace the [Datagen source connector](https://docs.confluent.io/kafka-connectors/datagen/current/overview.html) (far from that), but instead to be used for demo/development when setting up a dummy-data producer where the data produced (message, headers and key) can be seen on the console and in the corresponding topic in the kafka cluster. It has an argument called `--dry-run` to display messages in the console instead of publishing to the Kafka cluster
- - Folder `resources/` was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
- - See `resources/demo.avro` for a simple example of arg.properties and how to use it:
+ - This is a Kafka Producer and it does not use the Kafka Connect framework at all, also it is a single worker producer and `acks` is set to `0` (meaning, it will not wait for any acknowledgement from the broker)
+ - The purpose of it is not to replace the [Datagen source connector](https://docs.confluent.io/kafka-connectors/datagen/current/overview.html) (far from that), but instead to be used for demo/development purposes when setting up a dummy-data producer where the data produced (message, headers and key) can be seen on the console and in the corresponding topic in the kafka cluster. It has an argument called `--dry-run` to display messages in the console instead of publishing to the Kafka cluster
+ - Data is emulated based on the property `arg.properties` in the AVRO schema itself
+ - See `resources/demo.avro` for a simple example of `arg.properties` and how to use it:
    - iteration: Generate a monotonic sequence of numbers
      - start: Starting number. However it also accept the strings `now`, `now_utc`, `now_ms` and `now_utc_ms` to start from the current (local or UTC) EPOCH timestamp (seconds or milliseconds)
      - step: Linear incrementing step. However it also accept the string `interval` where it will match with the number set on the command line argument of the same name
@@ -57,6 +57,7 @@
    - `arg.properties` can also be defined outside the field type defintion, see example on `credit_cards.avro`
    - In case `arg.properties` is not defined in the schema file, a random value will be picked (int/long: 1 to 9999, double: 0.00 to 99.99, boolean: true or false, string: 4 to 8 random alphanumeric chars)
    - Schema will be cleaned up of `arg.properties` before uploading it to the Schema Registry
+ - Folder `resources/` was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
  - Message headers can be set dynamically via:
    - Python script: create a function (def) called `headers()` (it must return a Dict object), see example on `headers/dynamic_000.py`
    - Statically: json file, see example on `headers/static_000.json`
