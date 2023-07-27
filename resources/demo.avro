@@ -64,7 +64,7 @@
                 "arg.properties": {
                     "range": {
                         "min": -9999,
-                        "max": 9999,
+                        "max": 9999
                     }
                 }
             }
