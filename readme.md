@@ -2,7 +2,7 @@
 
 ## Requirements:
 - Python 3.8+
-- See file requirements.txt (python3 -m pip install -r requirements.txt)
+- See file requirements.txt (`python3 -m pip install -r requirements.txt`)
 
 ## Important:
  - This is a Kafka Producer and it does not use the Kafka Connect framework, also it is a single worker producer and "acks" is set to 0 (meaning, it will not wait for any acknowledgement from the broker)
@@ -14,26 +14,55 @@
    - iteration: Generate a monotonic sequence of numbers
      - start: Starting number. However it also accept the strings `now`, `now_utc`, `now_ms` and `now_utc_ms` to start from the current (local or UTC) EPOCH timestamp (seconds or milliseconds)
      - step: Linear incrementing step. However it also accept the string `interval` where it will match with the number set on the command line argument of the same name
-     - For example (initial starting number would be the current local time in milliseconds, where the subsequent numbers would linearly increase as per `--interval` command line argument):
      ```
-      {
-        "arg.properties": {
-          "iteration": {
-            "start": "now_ms",
-            "step": "interval"
-          }
+      "arg.properties": {
+        "iteration": {
+          "start": 0,
+          "step": 1
+        }
+      }
+     ```
+     - Initial starting number would be the current local time in milliseconds, where the subsequent numbers would linearly increase as per `--interval` command line argument:
+     ```
+      "arg.properties": {
+        "iteration": {
+          "start": "now_ms",
+          "step": "interval"
+        }
       }
      ```
    - regex: Regular expression to generate a string
+   ```
+    "arg.properties": {
+      "regex": "User_[0-9]{2}"
+    }
+   ```
    - options: List containing options to be randomly selected
+   ```
+    "arg.properties": {
+      "options": [
+        "Male",
+        "Female",
+        "Other"
+      ]
+    }
+   ```
    - range: Generate a random number, between `min` and `max` arguments
+   ```
+    {
+      "arg.properties": {
+        "range": {
+          "min": -9999,
+          "max": 9999
+        }
+      }
+    }
+   ```
+   - arg.properties can also be defined outside the field type defintion, see example on `credit_cards.avro`
  - Message headers can be set dynamically via:
    - Python script: create a function (def) called headers (it must return a Dict object), see example on `headers/dynamic_000.py`
    - Statically: json file, see example on `headers/static_000.json`
    - **Important**: All header files must be inside the folder `headers/`
-
-## To do:
- - Support to JSON and PROTOBUF schemas
 
 ## Usage and help
 ```
