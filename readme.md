@@ -10,7 +10,27 @@
  - Folder "resources/" was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
  - In case "arg.properties" is not defined in the schema file, a random value will be picked (int/long: 1 to 9999, double: 0.00 to 99.99, boolean: true or false, string: 4 to 8 random alphanumeric chars)
  - Schema will be cleaned up of "arg.properties" before sending to the Schema Registry
- - Message headers can be set dynamically (python script, make sure to set a global variable called "headers") or statically (json file). All header files must be inside the folder "headers/"
+ - See `resources/demo.avro` for a simple example of arg.properties and how to use it:
+   - iteration: Generate a monotonic sequence of numbers
+     - start: Starting number. However it also accept the strings `now`, `now_utc`, `now_ms` and `now_utc_ms` to start from the current (local or UTC) EPOCH timestamp (seconds or milliseconds)
+     - step: Linear incrementing step. However it also accept the string `interval` where it will match with the number set on the command line argument of the same name
+     - For example (initial starting number would be the current local time in milliseconds, where the subsequent numbers would linearly increase as per `--interval` command line argument):
+     ```
+      {
+        "arg.properties": {
+          "iteration": {
+            "start": "now_ms",
+            "step": "interval"
+          }
+      }
+     ```
+   - regex: Regular expression to generate a string
+   - options: List containing options to be randomly selected
+   - range: Generate a random number, between `min` and `max` arguments
+ - Message headers can be set dynamically via:
+   - Python script: create a function (def) called headers (it must return a Dict object), see example on `headers/dynamic_000.py`
+   - Statically: json file, see example on `headers/static_000.json`
+   - **Important**: All header files must be inside the folder `headers/`
 
 ## To do:
  - Support to JSON and PROTOBUF schemas
