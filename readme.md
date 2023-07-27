@@ -6,7 +6,7 @@
 
 ## Important:
  - This is a Kafka Producer and it does not use the Kafka Connect framework, also it is a single worker producer and `acks` is set to 0 (meaning, it will not wait for any acknowledgement from the broker)
- - The purpose of it is not to replace the Datagen source connector (far from that), but instead to be used for demo/development when setting up a dummy-data producer where the data produced (message, headers and key) can be seen on the console and in the corresponding topic in the kafka cluster. It has an argument called `--dry-run` to display messages in the console instead of publishing to the Kafka cluster
+ - The purpose of it is not to replace the [Datagen source connector](https://docs.confluent.io/kafka-connectors/datagen/current/overview.html) (far from that), but instead to be used for demo/development when setting up a dummy-data producer where the data produced (message, headers and key) can be seen on the console and in the corresponding topic in the kafka cluster. It has an argument called `--dry-run` to display messages in the console instead of publishing to the Kafka cluster
  - Folder `resources/` was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
  - See `resources/demo.avro` for a simple example of arg.properties and how to use it:
    - iteration: Generate a monotonic sequence of numbers
@@ -47,12 +47,10 @@
    ```
    - range: Generate a random number, between `min` and `max` arguments
    ```
-    {
-      "arg.properties": {
-        "range": {
-          "min": -9999,
-          "max": 9999
-        }
+    "arg.properties": {
+      "range": {
+        "min": -9999,
+        "max": 9999
       }
     }
    ```
@@ -300,3 +298,10 @@ key: User_1
 Flushing messages...
 > Message successfully produced to demo_users: Partition = 0, Offset = None
 ```
+
+# External References
+Confluent Datagen Source Connector: https://docs.confluent.io/kafka-connectors/datagen/current/overview.html
+
+Check out [Confluent's Developer portal](https://developer.confluent.io), it has free courses, documents, articles, blogs, podcasts and so many more content to get you up and running with a fully managed Apache Kafka service.
+
+Disclaimer: I work for Confluent :wink:
