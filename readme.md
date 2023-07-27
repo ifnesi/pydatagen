@@ -5,9 +5,9 @@
 - See file requirements.txt (`python3 -m pip install -r requirements.txt`)
 
 ## Important:
- - This is a Kafka Producer and it does not use the Kafka Connect framework, also it is a single worker producer and "acks" is set to 0 (meaning, it will not wait for any acknowledgement from the broker)
+ - This is a Kafka Producer and it does not use the Kafka Connect framework, also it is a single worker producer and `acks` is set to 0 (meaning, it will not wait for any acknowledgement from the broker)
  - The purpose of it is not to replace the Datagen source connector (far from that), but instead to be used for demo/development when setting up a dummy-data producer where the data produced (message, headers and key) can be seen on the console and in the corresponding topic in the kafka cluster. It has an argument called “--dry-run” to display messages in the console instead of publishing to the Kafka cluster
- - Folder "resources/" was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
+ - Folder `resources/` was forked on 19-Nov-2022 (from https://github.com/confluentinc/kafka-connect-datagen/tree/master/src/main/resources)
  - See `resources/demo.avro` for a simple example of arg.properties and how to use it:
    - iteration: Generate a monotonic sequence of numbers
      - start: Starting number. However it also accept the strings `now`, `now_utc`, `now_ms` and `now_utc_ms` to start from the current (local or UTC) EPOCH timestamp (seconds or milliseconds)
