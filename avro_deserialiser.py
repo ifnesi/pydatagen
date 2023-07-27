@@ -14,11 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Generic Avro consumer
+# Generic Avro consumer, message will be deserialised as per AVRO schema set on each event
 
 import os
-import re
-import hashlib
 import logging
 import argparse
 
