@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Python emulator of the Kafka source connector Datagen
+# Python emulator of the Confluent Datagen source connector
+# https://docs.confluent.io/kafka-connectors/datagen/current/overview.html
+
 
 import os
 import re
