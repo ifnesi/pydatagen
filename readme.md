@@ -300,6 +300,9 @@ Flushing messages...
 > Message successfully produced to demo_users: Partition = 0, Offset = None
 ```
 
+# TBD
+ - Implement a stateful producer using Markov models
+
 # External References
 Confluent Datagen Source Connector: https://docs.confluent.io/kafka-connectors/datagen/current/overview.html
 
