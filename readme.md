@@ -79,6 +79,9 @@ usage:
                [--config-filename CONFIG_FILENAME]
                [--kafka-section KAFKA_SECTION]
                [--sr-section SR_SECTION]
+               [--jitter_pct JITTER_PCT]
+               [--jitter_min_ms JITTER_MIN_MS]
+               [--jitter_max_ms JITTER_MAX_MS]
                [--silent]
                [--dry-run]
 
@@ -111,6 +114,12 @@ options:
   --sr-section SR_SECTION
                         Section in the config file related to the Schema Registry (e.g. schema-registry)
   --silent              Do not display results on screen (not applicable to dry-run mode)
+  --jitter_pct JITTER_PCT
+                        Percentage of messages to be delayed (default is 0)
+  --jitter_min_ms JITTER_MIN_MS
+                        Min message delay, but only applicable if jitter percentage is > 0 (default is 100 ms)
+  --jitter_max_ms JITTER_MAX_MS
+                        Max message delay, but only applicable if jitter percentage is > 0 (default is 1000 ms)
   </span>
 ```
 

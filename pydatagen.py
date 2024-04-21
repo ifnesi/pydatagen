@@ -43,7 +43,7 @@ from confluent_kafka.serialization import (
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 
-from utils import GracefulShutdown
+from utils import GracefulShutdown, sys_exc
 
 
 # Global Variables
@@ -190,9 +190,9 @@ class AvroParser:
                 with open(avro_schema_filename, "r") as f:
                     self.avro_schema_original = commentjson.loads(f.read())
 
-            except Exception as err:
+            except Exception:
                 logging.critical(
-                    f'{FILE_APP}: error: when processing schema file "{avro_schema_filename}": {err}'
+                    f'{FILE_APP}: error: when processing schema file "{avro_schema_filename}": {sys_exc(sys.exc_info())}'
                 )
                 sys.exit(-1)
         else:
@@ -233,9 +233,9 @@ class AvroParser:
                 return self._get_dynamic_headers_module(headers_filename).headers()
             else:
                 return self._get_static_headers(headers_filename)
-        except Exception as err:
+        except Exception:
             logging.critical(
-                f'{FILE_APP}: error: when processing headers file "{headers_filename}": {err}'
+                f'{FILE_APP}: error: when processing headers file "{headers_filename}": {sys_exc(sys.exc_info())}'
             )
             sys.exit(-1)
 
@@ -541,9 +541,9 @@ def main(args):
                             config_data,
                             args.kafka_section,
                         )
-                    except Exception as err:
+                    except Exception:
                         logging.critical(
-                            f'{FILE_APP}: error: when processing config file "{args.config_filename}": {err}'
+                            f'{FILE_APP}: error: when processing config file "{args.config_filename}": {sys_exc(sys.exc_info())}'
                         )
                         sys.exit(-1)
                 else:
@@ -585,11 +585,10 @@ def main(args):
             )  # override with the additional config
 
             producer = Producer(kafka_conf)
-
             avro_serializer = AvroSerializer(
                 schema_registry_client,
                 json.dumps(avsc.avro_schema),
-                avsc.data_dict,
+                to_dict=avsc.data_dict,
             )
 
             logging.info(
@@ -598,71 +597,101 @@ def main(args):
 
             gs = GracefulShutdown(producer)
 
-            for msg in range(args.iterations):
-                # Serve on_delivery callbacks from previous calls to produce()
-                producer.poll(0.0)
+            msg = 0
+            jitter_queue = dict()
+            jitter_pct = args.jitter_pct / 100
+            jitter_min_ms, jitter_max_ms = (args.jitter_max_ms, args.jitter_min_ms) if args.jitter_min_ms > args.jitter_max_ms else (args.jitter_min_ms, args.jitter_max_ms)
+            while msg < args.iterations or len(jitter_queue.keys()) > 0:
+                msg += 1
                 start_time = time.time()
 
                 with gs as _:
                     try:
-                        message = avsc.generate_payload(
-                            avsc.avro_schema_original,
-                            keyfield=args.keyfield,
-                            args=args,
-                        )
-
-                        producer_args = {
-                            "topic": args.topic,
-                            "value": avro_serializer(
-                                message,
-                                SerializationContext(
-                                    args.topic,
-                                    MessageField.VALUE,
-                                ),
-                            ),
-                        }
-
-                        if not args.silent:
-                            producer_args["on_delivery"] = avsc.delivery_report
-                            logging.info(f"message #{msg+1}: {message}")
-
-                        # Set headers
-                        if args.headers_filename:
-                            message_headers = avsc.set_headers(args.headers_filename)
-                            producer_args["headers"] = message_headers
-                            if not args.silent:
-                                logging.info(f"headers: {message_headers}")
-
-                        # Set key
-                        if message.get(args.keyfield):
-                            message_key = avsc.set_key(
-                                message,
-                                args.key_json,
-                                args.keyfield,
+                        if msg < args.iterations:
+                            message = avsc.generate_payload(
+                                avsc.avro_schema_original,
+                                keyfield=args.keyfield,
+                                args=args,
                             )
-                            producer_args["key"] = message_key
-                            if not args.silent:
-                                logging.info(f"key: {message_key}")
 
-                        # Publish message
-                        producer.produce(**producer_args)
+                            producer_args = {
+                                "topic": args.topic,
+                                "value": avro_serializer(
+                                    message,
+                                    SerializationContext(
+                                        args.topic,
+                                        MessageField.VALUE,
+                                    ),
+                                ),
+                            }
+
+                            if not args.silent:
+                                producer_args["on_delivery"] = avsc.delivery_report
+                                logging.info(f"message #{msg+1}: {message}")
+
+                            # Set headers
+                            if args.headers_filename:
+                                message_headers = avsc.set_headers(args.headers_filename)
+                                producer_args["headers"] = message_headers
+                                if not args.silent:
+                                    logging.info(f"headers: {message_headers}")
+
+                            # Set key
+                            if message.get(args.keyfield):
+                                message_key = avsc.set_key(
+                                    message,
+                                    args.key_json,
+                                    args.keyfield,
+                                )
+                                producer_args["key"] = message_key
+                                if not args.silent:
+                                    logging.info(f"key: {message_key}")
+
+                            # Publish message
+                            delayed_message = False
+                            if jitter_pct > 0:
+                                if jitter_pct > random.random():
+                                    delayed_message = True
+                                    send_at = time.time() + random.randint(jitter_min_ms, jitter_max_ms) / 1000
+                                    if "headers" not in producer_args.keys():
+                                        producer_args["headers"] = list()
+                                    producer_args["headers"].append(("delayed_message", "true"))
+                                    jitter_queue[send_at] = producer_args
+                                    logging.info(f">>> Delayed message, to be sent after {send_at}: {producer_args['key']} {message}")
+
+                            if not delayed_message:
+                                producer.poll(0.0)
+                                producer.produce(**producer_args)
+                                real_sleep(args.interval, start_time)
+
+                        # Check for delayed messages
+                        for send_at in [m for m in jitter_queue.keys() if time.time() > m]:
+                            start_time = time.time()
+                            producer.poll(0.0)
+                            logging.info(f"<<< Sending delayed message ({send_at}): {jitter_queue[send_at]['key']}")
+                            producer.produce(**jitter_queue[send_at])
+                            jitter_queue.pop(send_at)
+                            real_sleep(args.interval, start_time)
 
                     except KeyboardInterrupt:
                         logging.warning("CTRL-C pressed by user")
+                        jitter_queue = dict()
+                        msg = args.iterations + 1
                         break
 
-                    except ValueError as err:
-                        logging.ERROR("Invalid input, discarding record: {err}")
-                        continue
-
-                    finally:
+                    except ValueError:
+                        logging.error(
+                            f"Invalid input, discarding record: {sys_exc(sys.exc_info())}"
+                        )
                         real_sleep(args.interval, start_time)
 
             logging.info("Flushing messages...")
             producer.flush()
 
-        except Exception as err:
-            logging.critical(f"{FILE_APP}: error: when publishing messages: {err}")
+        except Exception:
+            logging.critical(
+                f"{FILE_APP}: error: when publishing messages: {sys_exc(sys.exc_info())}"
+            )
             sys.exit(-1)
 
 
@@ -790,5 +819,25 @@ if __name__ == "__main__":
         action="store_true",
         help="Do not display results on screen (not applicable to dry-run mode)",
     )
-
+    parser.add_argument(
+        "--jitter_pct",
+        dest="jitter_pct",
+        type=int,
+        help="Percentage of messages to be delayed (default is 0)",
+        default=0,
+    )
+    parser.add_argument(
+        "--jitter_min_ms",
+        dest="jitter_min_ms",
+        type=int,
+        help="Min message delay, but only applicable if jitter percentage is > 0 (default is 100 ms)",
+        default=100,
+    )
+    parser.add_argument(
+        "--jitter_max_ms",
+        dest="jitter_max_ms",
+        type=int,
+        help="Max message delay, but only applicable if jitter percentage is > 0 (default is 1000 ms)",
+        default=1000,
+    )
     main(parser.parse_args())
