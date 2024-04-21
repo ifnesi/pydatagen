@@ -9,3 +9,5 @@ config/*
 !config/example.ini
 !config/localhost.ini
 demo*.sh
+_*.py
+_*.sh
