@@ -120,7 +120,6 @@ options:
                         Min message delay, but only applicable if jitter percentage is > 0 (default is 100 ms)
   --jitter_max_ms JITTER_MAX_MS
                         Max message delay, but only applicable if jitter percentage is > 0 (default is 1000 ms)
-  </span>
 ```
 
 ## Examples:
